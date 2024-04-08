@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <title>
+  Intro to Reverse Engineering Arduino Binaries with Ghidra · Jonas Lieb
+</title>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+
+
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content; default-src 'self'; child-src 'self'; font-src 'self'; form-action 'self'; frame-src 'self'; img-src 'self' https://www.gravatar.com/; object-src 'none'; style-src 'self' 'unsafe-inline' https://github.githubassets.com; script-src 'self' 'unsafe-inline' https://gist.github.com; connect-src 'self';">
+
+
+
+
+<meta name="author" content="Jonas Lieb">
+<meta name="description" content="About the Arduino Link to heading ATmega328P
+Blink example: https://docs.arduino.cc/built-in-examples/basics/Blink/
+https://github.com/arduino/arduino-examples/blob/5d991a2ce69d22e8b21a1ee89ec715f093d45276/examples/01.Basics/Blink/Blink.ino
+25 26 27 28 29 30 31 32 33 34 35 36 37 // the setup function runs once when you press reset or power the board void setup() { // initialize digital pin LED_BUILTIN as an output. pinMode(LED_BUILTIN, OUTPUT); } // the loop function runs over and over again forever void loop() { digitalWrite(LED_BUILTIN, HIGH); // turn the LED on (HIGH is the voltage level) delay(1000); // wait for a second digitalWrite(LED_BUILTIN, LOW); // turn the LED off by making the voltage LOW delay(1000); // wait for a second } Obtaining the Binary Link to heading avrdude &#34;-C/etc/avrdude.">
+<meta name="keywords" content="blog,security,pentesting,personal">
+
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="Intro to Reverse Engineering Arduino Binaries with Ghidra"/>
+<meta name="twitter:description" content="About the Arduino Link to heading ATmega328P
+Blink example: https://docs.arduino.cc/built-in-examples/basics/Blink/
+https://github.com/arduino/arduino-examples/blob/5d991a2ce69d22e8b21a1ee89ec715f093d45276/examples/01.Basics/Blink/Blink.ino
+25 26 27 28 29 30 31 32 33 34 35 36 37 // the setup function runs once when you press reset or power the board void setup() { // initialize digital pin LED_BUILTIN as an output. pinMode(LED_BUILTIN, OUTPUT); } // the loop function runs over and over again forever void loop() { digitalWrite(LED_BUILTIN, HIGH); // turn the LED on (HIGH is the voltage level) delay(1000); // wait for a second digitalWrite(LED_BUILTIN, LOW); // turn the LED off by making the voltage LOW delay(1000); // wait for a second } Obtaining the Binary Link to heading avrdude &#34;-C/etc/avrdude."/>
+
+<meta property="og:title" content="Intro to Reverse Engineering Arduino Binaries with Ghidra" />
+<meta property="og:description" content="About the Arduino Link to heading ATmega328P
+Blink example: https://docs.arduino.cc/built-in-examples/basics/Blink/
+https://github.com/arduino/arduino-examples/blob/5d991a2ce69d22e8b21a1ee89ec715f093d45276/examples/01.Basics/Blink/Blink.ino
+25 26 27 28 29 30 31 32 33 34 35 36 37 // the setup function runs once when you press reset or power the board void setup() { // initialize digital pin LED_BUILTIN as an output. pinMode(LED_BUILTIN, OUTPUT); } // the loop function runs over and over again forever void loop() { digitalWrite(LED_BUILTIN, HIGH); // turn the LED on (HIGH is the voltage level) delay(1000); // wait for a second digitalWrite(LED_BUILTIN, LOW); // turn the LED off by making the voltage LOW delay(1000); // wait for a second } Obtaining the Binary Link to heading avrdude &#34;-C/etc/avrdude." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://localhost:1313/posts/arduino-ghidra/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2024-04-07T00:00:00+00:00" />
+<meta property="article:modified_time" content="2024-04-07T00:00:00+00:00" />
+
+
+
+
+<link rel="canonical" href="http://localhost:1313/posts/arduino-ghidra/">
+
+
+<link rel="preload" href="/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-regular-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  
+  
+  <link rel="stylesheet" href="/css/coder.css" media="screen">
+
+
+
+
+
+
+  
+    
+    
+    <link rel="stylesheet" href="/css/coder-dark.css" media="screen">
+  
+
+
+
+ 
+
+
+
+
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg" sizes="any">
+<link rel="icon" type="image/png" href="/images/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/images/favicon-16x16.png" sizes="16x16">
+
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+
+
+
+
+
+</head>
+
+
+
+
+
+
+<body class="preload-transitions colorscheme-auto">
+  
+<div class="float-container">
+    <a id="dark-mode-toggle" class="colorscheme-toggle">
+        <i class="fa-solid fa-adjust fa-fw" aria-hidden="true"></i>
+    </a>
+</div>
+
+
+  <main class="wrapper">
+    <nav class="navigation">
+  <section class="container">
+    
+    <a class="navigation-title" href="http://localhost:1313/">
+      Jonas Lieb
+    </a>
+    
+    
+      <input type="checkbox" id="menu-toggle" />
+      <label class="menu-button float-right" for="menu-toggle">
+        <i class="fa-solid fa-bars fa-fw" aria-hidden="true"></i>
+      </label>
+      <ul class="navigation-list">
+        
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/about">About</a>
+            </li>
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/posts">Blog</a>
+            </li>
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/projects">Projects</a>
+            </li>
+          
+        
+        
+      </ul>
+    
+  </section>
+</nav>
+
+
+    <div class="content">
+      
+  <section class="container post">
+    <article>
+      <header>
+        <div class="post-title">
+          <h1 class="title">
+            <a class="title-link" href="http://localhost:1313/posts/arduino-ghidra/">
+              Intro to Reverse Engineering Arduino Binaries with Ghidra
+            </a>
+          </h1>
+        </div>
+        <div class="post-meta">
+          <div class="date">
+            <span class="posted-on">
+              <i class="fa-solid fa-calendar" aria-hidden="true"></i>
+              <time datetime="2024-04-07T00:00:00Z">
+                April 7, 2024
+              </time>
+            </span>
+            <span class="reading-time">
+              <i class="fa-solid fa-clock" aria-hidden="true"></i>
+              3-minute read
+            </span>
+          </div>
+          
+          
+          
+        </div>
+      </header>
+
+      <div class="post-content">
+        
+        <h2 id="about-the-arduino">
+  About the Arduino
+  <a class="heading-link" href="#about-the-arduino">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>ATmega328P</p>
+<p>Blink example: <a href="https://docs.arduino.cc/built-in-examples/basics/Blink/"  class="external-link" target="_blank" rel="noopener">https://docs.arduino.cc/built-in-examples/basics/Blink/</a></p>
+<p><a href="https://github.com/arduino/arduino-examples/blob/5d991a2ce69d22e8b21a1ee89ec715f093d45276/examples/01.Basics/Blink/Blink.ino"  class="external-link" target="_blank" rel="noopener">https://github.com/arduino/arduino-examples/blob/5d991a2ce69d22e8b21a1ee89ec715f093d45276/examples/01.Basics/Blink/Blink.ino</a></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#75715e">// the setup function runs once when you press reset or power the board
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">setup</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// initialize digital pin LED_BUILTIN as an output.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  pinMode(LED_BUILTIN, OUTPUT);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// the loop function runs over and over again forever
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">loop</span>() {
+</span></span><span style="display:flex;"><span>  digitalWrite(LED_BUILTIN, HIGH);  <span style="color:#75715e">// turn the LED on (HIGH is the voltage level)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  delay(<span style="color:#ae81ff">1000</span>);                      <span style="color:#75715e">// wait for a second
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  digitalWrite(LED_BUILTIN, LOW);   <span style="color:#75715e">// turn the LED off by making the voltage LOW
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  delay(<span style="color:#ae81ff">1000</span>);                      <span style="color:#75715e">// wait for a second
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="obtaining-the-binary">
+  Obtaining the Binary
+  <a class="heading-link" href="#obtaining-the-binary">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>avrdude <span style="color:#e6db74">&#34;-C/etc/avrdude.conf&#34;</span> -v -V -patmega328p -carduino -PCOM3 -b115200 -D <span style="color:#e6db74">&#34;-Uflash:r:blogpost.hex:i&#34;</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>. <span style="color:#e6db74">&#34;</span>$env:LocalAppData<span style="color:#e6db74">\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/bin/avrdude&#34;</span> <span style="color:#e6db74">&#34;-C</span>$env:LocalAppData<span style="color:#e6db74">\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/etc/avrdude.conf&#34;</span> -v -V -patmega328p -carduino -PCOM3 -b115200 -D <span style="color:#e6db74">&#34;-Uflash:r:blogpost.hex:i&#34;</span>
+</span></span></code></pre></div><p><a href="https://en.wikipedia.org/wiki/Intel_HEX"  class="external-link" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Intel_HEX</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>:200000000C945C000C946E000C946E000C946E000C946E000C946E000C946E000C946E0082
+</span></span><span style="display:flex;"><span>:200020000C946E000C946E000C946E000C946E000C946E000C946E000C946E000C946E0050
+</span></span><span style="display:flex;"><span>:200040000C9413010C946E000C946E000C946E000C946E000C946E000C946E000C946E008A
+</span></span><span style="display:flex;"><span>:200060000C946E000C946E0000000000240027002A0000000000250028002B000404040467
+</span></span><span style="display:flex;"><span>:200080000404040402020202020203030303030301020408102040800102040810200102F1
+</span></span><span style="display:flex;"><span>:2000A00004081020000000080002010000030407000000000000000011241FBECFEFD8E063
+</span></span><span style="display:flex;"><span>:2000C000DEBFCDBF21E0A0E0B1E001C01D92A930B207E1F70E945D010C94CC010C940000FE
+</span></span><span style="display:flex;"><span>:2000E000E1EBF0E02491EDE9F0E09491E9E8F0E0E491EE23C9F0222339F0233001F1A8F4B5
+</span></span><span style="display:flex;"><span>[...]
+</span></span></code></pre></div><h2 id="ghidra-preparation">
+  Ghidra Preparation
+  <a class="heading-link" href="#ghidra-preparation">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p><a href="https://github.com/ahroach/avr_ghidra_helpers/blob/a98c18b2ec627a6a2e16df360f98ce59a00eb187/atmega328.pspec"  class="external-link" target="_blank" rel="noopener">github.com/ahroach/avr_ghidra_helpers/atmega328.pspec</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span><span style="color:#75715e">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;language_definitions&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- [...] --&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>  <span style="color:#f92672">&lt;language</span> <span style="color:#a6e22e">processor=</span><span style="color:#e6db74">&#34;AVR8&#34;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>            <span style="color:#a6e22e">endian=</span><span style="color:#e6db74">&#34;little&#34;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>            <span style="color:#a6e22e">size=</span><span style="color:#e6db74">&#34;16&#34;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>            <span style="color:#a6e22e">variant=</span><span style="color:#e6db74">&#34;atmega328&#34;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>            <span style="color:#a6e22e">version=</span><span style="color:#e6db74">&#34;1.0&#34;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>            <span style="color:#a6e22e">slafile=</span><span style="color:#e6db74">&#34;avr8eind.sla&#34;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>            <span style="color:#a6e22e">processorspec=</span><span style="color:#e6db74">&#34;atmega328.pspec&#34;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>            <span style="color:#a6e22e">manualindexfile=</span><span style="color:#e6db74">&#34;../manuals/AVR8.idx&#34;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>            <span style="color:#a6e22e">id=</span><span style="color:#e6db74">&#34;avr8:LE:16:atmega328&#34;</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>    <span style="color:#f92672">&lt;description&gt;</span>AVR8 for an Atmega 328<span style="color:#f92672">&lt;/description&gt;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>    <span style="color:#f92672">&lt;compiler</span> <span style="color:#a6e22e">name=</span><span style="color:#e6db74">&#34;gcc&#34;</span>        <span style="color:#a6e22e">spec=</span><span style="color:#e6db74">&#34;avr8egcc.cspec&#34;</span>        <span style="color:#a6e22e">id=</span><span style="color:#e6db74">&#34;gcc&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>    <span style="color:#f92672">&lt;external_name</span> <span style="color:#a6e22e">tool=</span><span style="color:#e6db74">&#34;gnu&#34;</span> <span style="color:#a6e22e">name=</span><span style="color:#e6db74">&#34;avr:51&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>    <span style="color:#f92672">&lt;external_name</span> <span style="color:#a6e22e">tool=</span><span style="color:#e6db74">&#34;gnu&#34;</span> <span style="color:#a6e22e">name=</span><span style="color:#e6db74">&#34;avr:6&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>    <span style="color:#f92672">&lt;external_name</span> <span style="color:#a6e22e">tool=</span><span style="color:#e6db74">&#34;IDA-PRO&#34;</span> <span style="color:#a6e22e">name=</span><span style="color:#e6db74">&#34;avr&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>  <span style="color:#f92672">&lt;/language&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- [...] --&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/language_definitions&gt;</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span><span style="color:#f92672">&lt;opinions&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;constraint</span> <span style="color:#a6e22e">loader=</span><span style="color:#e6db74">&#34;Executable and Linking Format (ELF)&#34;</span> <span style="color:#a6e22e">compilerSpecID=</span><span style="color:#e6db74">&#34;gcc&#34;</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&lt;constraint</span> <span style="color:#a6e22e">primary=</span><span style="color:#e6db74">&#34;83&#34;</span> <span style="color:#a6e22e">processor=</span><span style="color:#e6db74">&#34;AVR8&#34;</span> <span style="color:#a6e22e">endian=</span><span style="color:#e6db74">&#34;little&#34;</span> <span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">&lt;!--  Elf e_flags are used for the secondary attribute TODO: need to mask with 0x7f --&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&lt;constraint</span> <span style="color:#a6e22e">primary=</span><span style="color:#e6db74">&#34;83&#34;</span> <span style="color:#a6e22e">secondary=</span> <span style="color:#e6db74">&#34;31&#34;</span> <span style="color:#a6e22e">processor=</span><span style="color:#e6db74">&#34;AVR8&#34;</span> <span style="color:#a6e22e">size=</span><span style="color:#e6db74">&#34;16&#34;</span> <span style="color:#a6e22e">variant=</span><span style="color:#e6db74">&#34;default&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&lt;constraint</span> <span style="color:#a6e22e">primary=</span><span style="color:#e6db74">&#34;83&#34;</span> <span style="color:#a6e22e">secondary=</span> <span style="color:#e6db74">&#34;51&#34;</span> <span style="color:#a6e22e">processor=</span><span style="color:#e6db74">&#34;AVR8&#34;</span> <span style="color:#a6e22e">size=</span><span style="color:#e6db74">&#34;16&#34;</span> <span style="color:#a6e22e">variant=</span><span style="color:#e6db74">&#34;extended&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&lt;constraint</span> <span style="color:#a6e22e">primary=</span><span style="color:#e6db74">&#34;83&#34;</span> <span style="color:#a6e22e">secondary=</span> <span style="color:#e6db74">&#34;6&#34;</span> <span style="color:#a6e22e">processor=</span><span style="color:#e6db74">&#34;AVR8&#34;</span> <span style="color:#a6e22e">size=</span><span style="color:#e6db74">&#34;24&#34;</span> <span style="color:#a6e22e">variant=</span><span style="color:#e6db74">&#34;atmega256&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>        <span style="color:#f92672">&lt;constraint</span> <span style="color:#a6e22e">primary=</span><span style="color:#e6db74">&#34;83&#34;</span> <span style="color:#a6e22e">secondary=</span> <span style="color:#e6db74">&#34;5&#34;</span> <span style="color:#a6e22e">processor=</span><span style="color:#e6db74">&#34;AVR8&#34;</span> <span style="color:#a6e22e">size=</span><span style="color:#e6db74">&#34;16&#34;</span> <span style="color:#a6e22e">variant=</span><span style="color:#e6db74">&#34;atmega328&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&lt;constraint</span> <span style="color:#a6e22e">primary=</span><span style="color:#e6db74">&#34;83&#34;</span> <span style="color:#a6e22e">secondary=</span> <span style="color:#e6db74">&#34;107&#34;</span> <span style="color:#a6e22e">processor=</span><span style="color:#e6db74">&#34;AVR8&#34;</span> <span style="color:#a6e22e">size=</span><span style="color:#e6db74">&#34;24&#34;</span> <span style="color:#a6e22e">variant=</span><span style="color:#e6db74">&#34;Xmega&#34;</span><span style="color:#f92672">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;/constraint&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/opinions&gt;</span>
+</span></span></code></pre></div><h2 id="analysis-in-ghidra">
+  Analysis in Ghidra
+  <a class="heading-link" href="#analysis-in-ghidra">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<ul>
+<li>File &gt; New Project</li>
+<li>Select &ldquo;Non-Shared Project&rdquo;</li>
+<li>Choose a parent &ldquo;Project Directory&rdquo; (warning: will be cluttered)</li>
+<li>Choose a project name</li>
+<li>Drag&amp;Drop / File &gt; Import File / Shortcut &ldquo;I&rdquo; and select the downloaded hex file</li>
+<li>Click on &ldquo;&hellip;&rdquo; next to &ldquo;Language&rdquo; and select &ldquo;AVR8 atmega328&rdquo;
+[Screenshot]</li>
+<li>Confirm dialogs with OK
+[Screenshot]</li>
+<li>Double click the hex file</li>
+<li>Ghidra will ask whether to analyze - YES</li>
+<li>Keep default options and click Analyze
+[Screenshot]</li>
+</ul>
+<p>Interrupt Vector Table</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">FUN_code_00015d</span>(<span style="color:#66d9ef">void</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">char</span> cVar1;
+</span></span><span style="display:flex;"><span>  undefined <span style="color:#f92672">*</span>puVar2;
+</span></span><span style="display:flex;"><span>  byte bVar3;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">bool</span> bVar4;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">bool</span> bVar5;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">bool</span> bVar6;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">char</span> in_Hflg;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">char</span> in_Tflg;
+</span></span><span style="display:flex;"><span>  
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> TCCR0A;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> R24 <span style="color:#f92672">|</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>  TCCR0A <span style="color:#f92672">=</span> R24;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> TCCR0A;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> R24 <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>  TCCR0A <span style="color:#f92672">=</span> R24;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> TCCR0B;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> R24 <span style="color:#f92672">|</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>  TCCR0B <span style="color:#f92672">=</span> R24;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> TCCR0B;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> R24 <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>  TCCR0B <span style="color:#f92672">=</span> R24;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> TIMSK0;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> R24 <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>  TIMSK0 <span style="color:#f92672">=</span> R24;
+</span></span><span style="display:flex;"><span>  TCCR1B <span style="color:#f92672">=</span> R1;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> TCCR1B;
+</span></span><span style="display:flex;"><span>  R24 <span style="color:#f92672">=</span> R24 <span style="color:#f92672">|</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// [...]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span> (DAT_codebyte_000089 <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// [...]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">do</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FUN_code_000070</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FUN_code_0000dd</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FUN_code_000070</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FUN_code_0000dd</span>();
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">while</span>( true );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This is <code>main()</code> <a href="https://github.com/arduino/ArduinoCore-avr/blob/63092126a406402022f943ac048fa195ed7e944b/cores/arduino/main.cpp#L33,L51"  class="external-link" target="_blank" rel="noopener">https://github.com/arduino/ArduinoCore-avr/blob/63092126a406402022f943ac048fa195ed7e944b/cores/arduino/main.cpp#L33,L51</a>, but <code>init()</code>, <code>setup()</code> and <code>loop()</code> have been inlined.</p>
+<p>Lines 13 to 31 correspond to <a href="https://github.com/arduino/ArduinoCore-avr/blob/63092126a406402022f943ac048fa195ed7e944b/cores/arduino/wiring.c#L241,L392"  class="external-link" target="_blank" rel="noopener">https://github.com/arduino/ArduinoCore-avr/blob/63092126a406402022f943ac048fa195ed7e944b/cores/arduino/wiring.c#L241,L392</a>, sets up prescaler.</p>
+<p>Lines 35 to 40 are the main loop.</p>
+<p>Assembler (comments by me):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code class="language-asm" data-lang="asm"><span style="display:flex;"><span>LAB_code_0001bd:
+</span></span><span style="display:flex; background-color:#3c3d38"><span>    <span style="color:#a6e22e">ldi</span>        <span style="color:#66d9ef">R24</span>, <span style="color:#ae81ff">0x1</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">call</span>       <span style="color:#66d9ef">FUN_code_000070</span>          <span style="color:#75715e">; digitalWrite(LED_BUILTIN, HIGH);
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">call</span>       <span style="color:#66d9ef">FUN_code_0000dd</span>          <span style="color:#75715e">; delay(1000);
+</span></span></span><span style="display:flex; background-color:#3c3d38"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">ldi</span>        <span style="color:#66d9ef">R24</span>, <span style="color:#ae81ff">0x0</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">call</span>       <span style="color:#66d9ef">FUN_code_000070</span>          <span style="color:#75715e">; digitalWrite(LED_BUILTIN, LOW);
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">call</span>       <span style="color:#66d9ef">FUN_code_0000dd</span>          <span style="color:#75715e">; delay(1000);
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">sbiw</span>       <span style="color:#66d9ef">Y</span>, <span style="color:#ae81ff">0x0</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">brbs</span>       <span style="color:#66d9ef">LAB_code_0001bd</span>, <span style="color:#66d9ef">Zflg</span>
+</span></span></code></pre></div><p>Right click function in Listing &gt; Edit Function</p>
+<p>[Screenshot]</p>
+<p>[Screenshot]</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>  <span style="color:#66d9ef">do</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">digitalWrite</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FUN_code_0000dd</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">digitalWrite</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FUN_code_0000dd</span>();
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">while</span>( true )
+</span></span></code></pre></div>
+      </div>
+
+
+      <footer>
+        
+
+
+        
+        
+        
+        
+        
+
+        
+      </footer>
+    </article>
+
+    
+  </section>
+
+    </div>
+
+    <footer class="footer">
+  <section class="container">
+    ©
+    
+    2024
+     Jonas Lieb 
+    ·
+    
+    Powered by <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> & <a href="https://github.com/luizdepra/hugo-coder/" target="_blank" rel="noopener">Coder</a>.
+    
+  </section>
+</footer>
+
+  </main>
+
+  
+
+  
+  
+  <script src="/js/coder.js"></script>
+  
+
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>

@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>
+  The State of Reverse Engineering Arduino Binaries with Ghidra · Jonas Lieb
+</title>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+
+
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content; default-src 'self'; child-src 'self'; font-src 'self'; form-action 'self'; frame-src 'self'; img-src 'self' https://www.gravatar.com/; object-src 'none'; style-src 'self' 'unsafe-inline' https://github.githubassets.com; script-src 'self' 'unsafe-inline' https://gist.github.com; connect-src 'self';">
+
+
+
+
+<meta name="author" content="Jonas Lieb">
+<meta name="description" content="Literature about reverse engineering Arduino binaries using
+Ghidra appears to be sparse. Therefore, with this
+post, I want to give a short introduction to the architecture and provide a
+starting point for analysis. However, since Ghidra only rudimentary supports the
+ATmega328P (used by the Arduino Uno), the post will also outline the state of
+the current (April 2024) support for this architecture and demonstrate its
+limits.
+Disclaimer: At daytime, I work in offensive IT security, which requires some
+level of reverse engineering, however mostly of high-level binaries (Linux and
+Windows). I also have some experience with microcontrollers, but I am by no means
+a well-versed embedded systems (reverse) engineer.">
+<meta name="keywords" content="blog,security,pentesting,personal">
+
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="The State of Reverse Engineering Arduino Binaries with Ghidra"/>
+<meta name="twitter:description" content="Literature about reverse engineering Arduino binaries using
+Ghidra appears to be sparse. Therefore, with this
+post, I want to give a short introduction to the architecture and provide a
+starting point for analysis. However, since Ghidra only rudimentary supports the
+ATmega328P (used by the Arduino Uno), the post will also outline the state of
+the current (April 2024) support for this architecture and demonstrate its
+limits.
+Disclaimer: At daytime, I work in offensive IT security, which requires some
+level of reverse engineering, however mostly of high-level binaries (Linux and
+Windows). I also have some experience with microcontrollers, but I am by no means
+a well-versed embedded systems (reverse) engineer."/>
+
+<meta property="og:title" content="The State of Reverse Engineering Arduino Binaries with Ghidra" />
+<meta property="og:description" content="Literature about reverse engineering Arduino binaries using
+Ghidra appears to be sparse. Therefore, with this
+post, I want to give a short introduction to the architecture and provide a
+starting point for analysis. However, since Ghidra only rudimentary supports the
+ATmega328P (used by the Arduino Uno), the post will also outline the state of
+the current (April 2024) support for this architecture and demonstrate its
+limits.
+Disclaimer: At daytime, I work in offensive IT security, which requires some
+level of reverse engineering, however mostly of high-level binaries (Linux and
+Windows). I also have some experience with microcontrollers, but I am by no means
+a well-versed embedded systems (reverse) engineer." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://jonaslieb.de/posts/arduino-ghidra-intro/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2024-04-08T00:00:00+00:00" />
+<meta property="article:modified_time" content="2024-04-07T00:00:00+00:00" />
+
+
+
+
+<link rel="canonical" href="https://jonaslieb.de/posts/arduino-ghidra-intro/">
+
+
+<link rel="preload" href="/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-regular-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  
+  
+  <link rel="stylesheet" href="/css/coder.min.38c4552ac40f9ae3408bad40358f654ebd8804412fe74ed56f2d6c8a7af82dd3.css" integrity="sha256-OMRVKsQPmuNAi61ANY9lTr2IBEEv507Vby1sinr4LdM=" crossorigin="anonymous" media="screen" />
+
+
+
+
+
+
+  
+    
+    
+    <link rel="stylesheet" href="/css/coder-dark.min.a00e6364bacbc8266ad1cc81230774a1397198f8cfb7bcba29b7d6fcb54ce57f.css" integrity="sha256-oA5jZLrLyCZq0cyBIwd0oTlxmPjPt7y6KbfW/LVM5X8=" crossorigin="anonymous" media="screen" />
+  
+
+
+
+ 
+  
+    
+    <link rel="stylesheet" href="/css/lightbox.min.20370caf97083ce13ff0dfd151cfe117f59b453a2b002305db9c4b4fd3a96d74.css" integrity="sha256-IDcMr5cIPOE/8N/RUc/hF/WbRTorACMF25xLT9OpbXQ=" crossorigin="anonymous" media="screen" />
+  
+
+
+
+  
+  
+    
+    <link rel="stylesheet" href="/scss/custom.min.e82e599ec53a5f343d00910c8511aac5928f958f943274b83b74214b9346140f.css" integrity="sha256-6C5ZnsU6XzQ9AJEMhRGqxZKPlY&#43;UMnS4O3QhS5NGFA8=" crossorigin="anonymous" media="screen" />
+  
+
+
+
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg" sizes="any">
+<link rel="icon" type="image/png" href="/images/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/images/favicon-16x16.png" sizes="16x16">
+
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+
+
+
+
+
+</head>
+
+
+
+
+
+
+<body class="preload-transitions colorscheme-auto">
+  
+<div class="float-container">
+    <a id="dark-mode-toggle" class="colorscheme-toggle">
+        <i class="fa-solid fa-adjust fa-fw" aria-hidden="true"></i>
+    </a>
+</div>
+
+
+  <main class="wrapper">
+    <nav class="navigation">
+  <section class="container">
+    
+    <a class="navigation-title" href="https://jonaslieb.de/">
+      Jonas Lieb
+    </a>
+    
+    
+      <input type="checkbox" id="menu-toggle" />
+      <label class="menu-button float-right" for="menu-toggle">
+        <i class="fa-solid fa-bars fa-fw" aria-hidden="true"></i>
+      </label>
+      <ul class="navigation-list">
+        
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/posts">Blog</a>
+            </li>
+          
+        
+        
+      </ul>
+    
+  </section>
+</nav>
+
+
+    <div class="content">
+      
+  <section class="container post">
+    <article>
+      <header>
+        <div class="post-title">
+          <h1 class="title">
+            <a class="title-link" href="https://jonaslieb.de/posts/arduino-ghidra-intro/">
+              The State of Reverse Engineering Arduino Binaries with Ghidra
+            </a>
+          </h1>
+        </div>
+        <div class="post-meta">
+          <div class="date">
+            <span class="posted-on">
+              <i class="fa-solid fa-calendar" aria-hidden="true"></i>
+              <time datetime="2024-04-07T00:00:00Z">
+                April 7, 2024
+              </time>
+            </span>
+            <span class="reading-time">
+              <i class="fa-solid fa-clock" aria-hidden="true"></i>
+              11-minute read
+            </span>
+          </div>
+          
+          
+          
+        </div>
+      </header>
+
+      <div class="post-content">
+        
+        <p>Literature about reverse engineering Arduino binaries using
+<a href="https://ghidra-sre.org/"  class="external-link" target="_blank" rel="noopener">Ghidra</a> appears to be sparse. Therefore, with this
+post, I want to give a short introduction to the architecture and provide a
+starting point for analysis. However, since Ghidra only rudimentary supports the
+ATmega328P (used by the Arduino Uno), the post will also outline the state of
+the current (April 2024) support for this architecture and demonstrate its
+limits.</p>
+<p><em>Disclaimer: At daytime, I work in offensive IT security, which requires some
+level of reverse engineering, however mostly of high-level binaries (Linux and
+Windows). I also have some experience with microcontrollers, but I am by no means
+a well-versed embedded systems (reverse) engineer.</em></p>
+<h2 id="test-setup">
+  Test Setup
+  <a class="heading-link" href="#test-setup">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>I will be working with the <a href="https://store.arduino.cc/products/arduino-uno-rev3"  class="external-link" target="_blank" rel="noopener">Arduino Uno Rev
+3</a>. Maybe in the future I&rsquo;ll
+focus on other Arduino models and Arduino-like platforms, for example the
+Arduino Micro or the ESP8266, but for now this must suffice.</p>
+<p>Also, I will be using the example project
+<a href="https://docs.arduino.cc/built-in-examples/communication/ASCIITable/"  class="external-link" target="_blank" rel="noopener">&ldquo;ASCIITable&rdquo;</a>
+that is shipped with the Arduino IDE. You can find its source code <a href="https://github.com/arduino/arduino-examples/blob/5d991a2ce69d22e8b21a1ee89ec715f093d45276/examples/04.Communication/ASCIITable/ASCIITable.ino"  class="external-link" target="_blank" rel="noopener">on
+GitHub</a>
+if you want to <del>follow along</del> cheat, but for now, let&rsquo;s pretend that we lost
+the source code.</p>
+<h2 id="dumping-the-flash">
+  Dumping the Flash
+  <a class="heading-link" href="#dumping-the-flash">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>The binary can be dumped from the Arduino&rsquo;s flash with the tool <code>avrdude</code> that
+is shipped with the Arduino SDK<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">avrdude <span class="s2">&#34;-C/etc/avrdude.conf&#34;</span> -v -V -patmega328p -carduino -P/dev/ttyUSB1 -b115200 -D <span class="s2">&#34;-Uflash:r:blogpost.bin:r&#34;</span>
+</span></span></code></pre></div><p>If you would like to reproduce this, you might need to change <code>/dev/ttyUSB1</code> for
+the serial port that the Arduino is registered at, which you can list using <code>ls /dev/ttyUSB*</code>. The same also works on Windows, where the serial port is called
+something like <code>COM1</code>.</p>
+<p>The invocation generates the file <code>blogpost.bin</code> which contains the flash
+contents as raw binary. If you obtained the flash contents in <a href="https://en.wikipedia.org/wiki/Intel_HEX"  class="external-link" target="_blank" rel="noopener">Intel HEX
+format</a> (which is a bit more common),
+you could convert this file to raw binary using the following command<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">objcopy --input-target<span class="o">=</span>ihex --output-target<span class="o">=</span>binary blogpost.hex blogpost.bin
+</span></span></code></pre></div><h2 id="ghidra-preparation">
+  Ghidra Preparation
+  <a class="heading-link" href="#ghidra-preparation">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>At the heart of the Arduino Uno is the AVR (formerly <em>Atmel</em>) ATmega328P 8-bit
+microcontroller
+(<a href="https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf"  class="external-link" target="_blank" rel="noopener">datasheet</a>).</p>
+<div class="notice info">
+  <div class="notice-title">
+    <i class="fa-solid fa-exclamation-circle" aria-hidden="true"></i>Info
+  </div>
+  <div class="notice-content">&ldquo;8 bit&rdquo; in this context means that operations usually operate on 8-bit values (0
+to 255, or -127 to 128) and registers therefore are also 8 bit in size. However,
+instructions are either 16 or 32 bit wide and therefore addressing is done in
+16-bit blocks. Therefore, registers are often used in pairs.</div>
+</div>
+
+<p>Unfortunately, Ghidra does not directly support this microcontroller. The good
+news is, though, that it supports similar AVR 8-bit microcontrollers and someone
+already wrote some helper files for the ATmega328 (shoutout to GitHub user
+<a href="https://github.com/ahroach"  class="external-link" target="_blank" rel="noopener">@ahroach</a>).</p>
+<p>First, we need to place the file
+<a href="https://github.com/ahroach/avr_ghidra_helpers/blob/a98c18b2ec627a6a2e16df360f98ce59a00eb187/atmega328.pspec"  class="external-link" target="_blank" rel="noopener">github.com/ahroach/avr_ghidra_helpers/atmega328.pspec</a>
+in the directory <code>Ghidra/Processors/Atmel/data/languages</code>. Then, we modify the
+file <code>Ghidra/Processors/Atmel/data/languages/avr8.ldefs</code> and add the
+<code>&lt;language&gt;</code> tag highlighted in the following listing:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;language_definitions&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c">&lt;!-- [...] --&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line hl"><span class="cl">  <span class="nt">&lt;language</span> <span class="na">processor=</span><span class="s">&#34;AVR8&#34;</span>
+</span></span><span class="line hl"><span class="cl">            <span class="na">endian=</span><span class="s">&#34;little&#34;</span>
+</span></span><span class="line hl"><span class="cl">            <span class="na">size=</span><span class="s">&#34;16&#34;</span>
+</span></span><span class="line hl"><span class="cl">            <span class="na">variant=</span><span class="s">&#34;atmega328&#34;</span>
+</span></span><span class="line hl"><span class="cl">            <span class="na">version=</span><span class="s">&#34;1.0&#34;</span>
+</span></span><span class="line hl"><span class="cl">            <span class="na">slafile=</span><span class="s">&#34;avr8eind.sla&#34;</span>
+</span></span><span class="line hl"><span class="cl">            <span class="na">processorspec=</span><span class="s">&#34;atmega328.pspec&#34;</span>
+</span></span><span class="line hl"><span class="cl">            <span class="na">manualindexfile=</span><span class="s">&#34;../manuals/AVR8.idx&#34;</span>
+</span></span><span class="line hl"><span class="cl">            <span class="na">id=</span><span class="s">&#34;avr8:LE:16:atmega328&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="nt">&lt;description&gt;</span>AVR8 for an Atmega 328<span class="nt">&lt;/description&gt;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="nt">&lt;compiler</span> <span class="na">name=</span><span class="s">&#34;gcc&#34;</span>        <span class="na">spec=</span><span class="s">&#34;avr8egcc.cspec&#34;</span>        <span class="na">id=</span><span class="s">&#34;gcc&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="nt">&lt;external_name</span> <span class="na">tool=</span><span class="s">&#34;gnu&#34;</span> <span class="na">name=</span><span class="s">&#34;avr:51&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="nt">&lt;external_name</span> <span class="na">tool=</span><span class="s">&#34;gnu&#34;</span> <span class="na">name=</span><span class="s">&#34;avr:6&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="nt">&lt;external_name</span> <span class="na">tool=</span><span class="s">&#34;IDA-PRO&#34;</span> <span class="na">name=</span><span class="s">&#34;avr&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="nt">&lt;/language&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c">&lt;!-- [...] --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/language_definitions&gt;</span>
+</span></span></code></pre></div><p>Restart Ghidra and you should be able to improt files for the <code>atmega328</code>
+architecture configuration.</p>
+<h2 id="analysis-in-ghidra">
+  Analysis in Ghidra
+  <a class="heading-link" href="#analysis-in-ghidra">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>Although the following sections certainly assume that you have some basic Ghidra
+knowledge, I will walk you through the initial analysis:</p>
+<ol>
+<li>After starting Ghidra, create a new project using <em>File</em> &gt; <em>New Project</em></li>
+<li>Select &ldquo;Non-Shared Project&rdquo;</li>
+<li>Choose a parent &ldquo;Project Directory&rdquo; (Warning: this directory will be cluttered with a few files) and a project name</li>
+<li>Import the dumped <code>.bin</code> file, either via drag-and-drop or by choosing <em>File</em> &gt; <em>Import File</em> from the menu.</li>
+<li>Click on &ldquo;&hellip;&rdquo; next to &ldquo;Language&rdquo; and select &ldquo;AVR8 / atmega328 / 16 / little / gcc&rdquo;:
+
+<a href="images/language-selection.png"><img src="images/language-selection.png" width="921" height="535"  alt="Language Selection" style="width: 50rem;"></a></li>
+<li>Confirm all dialogs with <em>OK</em></li>
+<li>Double-click the imported file to open it in Ghidra&rsquo;s CodeBrowser</li>
+<li>Ghidra will ask whether to analyze - keep the default options and click <em>Analyze</em></li>
+</ol>
+<p>You should now see the program&rsquo;s memory in Ghidra&rsquo;s CodeBrowser.</p>
+<h3 id="interrupt-vector-table">
+  Interrupt Vector Table
+  <a class="heading-link" href="#interrupt-vector-table">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<p>A good starting point for understanding the program is the <a href="https://en.wikipedia.org/wiki/Interrupt_vector_table"  class="external-link" target="_blank" rel="noopener">Interrupt Vector
+Table</a>. This table is
+usually located at the address <code>0x00000000</code> and contains <code>jmp</code> instructions
+(so-called <em>interrupt handlers</em>) that the processor calls when an interrupt
+occurs, i.e. &ldquo;something important happens&rdquo;. The table from the
+<a href="https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf"  class="external-link" target="_blank" rel="noopener">ATmega258P
+datasheet</a>
+lists the expected entries.</p>
+<details>
+  <summary>Show Interrupt Vector Table</summary>
+<table>
+<thead>
+<tr>
+<th>Program Address</th>
+<th>Source</th>
+<th>Interrupt Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x0000</td>
+<td>RESET</td>
+<td>External pin, power-on reset, brown-out reset and watchdog system reset</td>
+</tr>
+<tr>
+<td>0x002</td>
+<td>INT0</td>
+<td>External interrupt request 0</td>
+</tr>
+<tr>
+<td>0x0004</td>
+<td>INT1</td>
+<td>External interrupt request 1</td>
+</tr>
+<tr>
+<td>0x0006</td>
+<td>PCINT0</td>
+<td>Pin change interrupt request 0</td>
+</tr>
+<tr>
+<td>0x0008</td>
+<td>PCINT1</td>
+<td>Pin change interrupt request 1</td>
+</tr>
+<tr>
+<td>0x000A</td>
+<td>PCINT2</td>
+<td>Pin change interrupt request 2</td>
+</tr>
+<tr>
+<td>0x000C</td>
+<td>WDT</td>
+<td>Watchdog time-out interrupt</td>
+</tr>
+<tr>
+<td>0x000E</td>
+<td>TIMER2</td>
+<td>COMPA Timer/Counter2 compare match A</td>
+</tr>
+<tr>
+<td>0x0010</td>
+<td>TIMER2</td>
+<td>COMPB Timer/Counter2 compare match B</td>
+</tr>
+<tr>
+<td>0x0012</td>
+<td>TIMER2</td>
+<td>OVF Timer/Counter2 overflow</td>
+</tr>
+<tr>
+<td>0x0014</td>
+<td>TIMER1</td>
+<td>CAPT Timer/Counter1 capture event</td>
+</tr>
+<tr>
+<td>0x0016</td>
+<td>TIMER1</td>
+<td>COMPA Timer/Counter1 compare match A</td>
+</tr>
+<tr>
+<td>0x0018</td>
+<td>TIMER1</td>
+<td>COMPB Timer/Counter1 compare match B</td>
+</tr>
+<tr>
+<td>0x001A</td>
+<td>TIMER1</td>
+<td>OVF Timer/Counter1 overflow</td>
+</tr>
+<tr>
+<td>0x001C</td>
+<td>TIMER0</td>
+<td>COMPA Timer/Counter0 compare match A</td>
+</tr>
+<tr>
+<td>0x001E</td>
+<td>TIMER0</td>
+<td>COMPB Timer/Counter0 compare match B</td>
+</tr>
+<tr>
+<td>0x0020</td>
+<td>TIMER0</td>
+<td>OVF Timer/Counter0 overflow</td>
+</tr>
+<tr>
+<td>0x0022</td>
+<td>SPI, STC</td>
+<td>SPI serial transfer complete</td>
+</tr>
+<tr>
+<td>0x0024</td>
+<td>USART, RX</td>
+<td>USART Rx complete</td>
+</tr>
+<tr>
+<td>0x0026</td>
+<td>USART, UDRE</td>
+<td>USART, data register empty</td>
+</tr>
+<tr>
+<td>0x0028</td>
+<td>USART, TX</td>
+<td>USART, Tx complete</td>
+</tr>
+<tr>
+<td>0x002A</td>
+<td>ADC</td>
+<td>ADC conversion complete</td>
+</tr>
+<tr>
+<td>0x002C</td>
+<td>EE READY</td>
+<td>EEPROM ready</td>
+</tr>
+<tr>
+<td>0x002E</td>
+<td>ANALOG</td>
+<td>COMP Analog comparator</td>
+</tr>
+<tr>
+<td>0x0030</td>
+<td>TWI</td>
+<td>2-wire serial interface</td>
+</tr>
+<tr>
+<td>0x0032</td>
+<td>SPM READY</td>
+<td>Store program memory ready</td>
+</tr>
+</tbody>
+</table>
+</details>
+<p>And indeed, we can find this table in the disassembly:
+
+<a href="images/ivt.png"><img src="images/ivt.png" width="2852" height="1633"  alt="IVT Table in Ghidra CodeBrowser"></a></p>
+<h3 id="the-reset-interrupt-handler">
+  The RESET Interrupt Handler
+  <a class="heading-link" href="#the-reset-interrupt-handler">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<p>Let&rsquo;s now inspect the <code>RESET</code> interrupt handler, <code>FUN_code_000035</code>:</p>
+<p>
+<a href="images/reset.png"><img src="images/reset.png" width="2615" height="1633"  alt="RESET function"></a></p>
+<p>Before actually doing something interesting, this function initializes the program&rsquo;s memory, just like an ELF/PE loader would do:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">FUN_code_000035</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// [...]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">R1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line hl"><span class="cl">  <span class="n">X</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">DAT_mem_0100</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">Z</span> <span class="o">=</span> <span class="mh">0x74e</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="n">puVar1</span> <span class="o">=</span> <span class="n">X</span><span class="p">,</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">X</span> <span class="o">!=</span> <span class="mh">0x54</span> <span class="o">||</span> <span class="n">X</span><span class="p">.</span><span class="n">_1_1_</span> <span class="o">!=</span> <span class="p">(</span><span class="kt">char</span><span class="p">)(</span><span class="n">R17</span> <span class="o">+</span> <span class="p">((</span><span class="n">byte</span><span class="p">)</span><span class="n">X</span> <span class="o">&lt;</span> <span class="mh">0x54</span><span class="p">)))</span> <span class="p">{</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">R0</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">undefined</span> <span class="o">*</span><span class="p">)(</span><span class="n">uint3</span><span class="p">)</span><span class="n">Z</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">Z</span> <span class="o">=</span> <span class="n">Z</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">X</span> <span class="o">=</span> <span class="n">X</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="o">*</span><span class="n">puVar1</span> <span class="o">=</span> <span class="n">R0</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line hl"><span class="cl">  <span class="n">R18</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">X</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">DAT_mem_0154</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="n">puVar1</span> <span class="o">=</span> <span class="n">X</span><span class="p">,</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">X</span> <span class="o">!=</span> <span class="mh">0xfa</span> <span class="o">||</span> <span class="n">X</span><span class="p">.</span><span class="n">_1_1_</span> <span class="o">!=</span> <span class="p">(</span><span class="kt">char</span><span class="p">)(</span><span class="n">R18</span> <span class="o">+</span> <span class="p">((</span><span class="n">byte</span><span class="p">)</span><span class="n">X</span> <span class="o">&lt;</span> <span class="mh">0xfa</span><span class="p">)))</span> <span class="p">{</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">X</span> <span class="o">=</span> <span class="n">X</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="o">*</span><span class="n">puVar1</span> <span class="o">=</span> <span class="n">R1</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line hl"><span class="cl">  <span class="n">R17</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">Y</span> <span class="o">=</span> <span class="mh">0x35</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="k">while</span> <span class="p">((</span><span class="n">byte</span><span class="p">)</span><span class="n">Y</span> <span class="o">!=</span> <span class="mh">0x34</span> <span class="o">||</span> <span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">Y</span><span class="p">.</span><span class="n">_1_1_</span> <span class="o">!=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">Y</span> <span class="o">&lt;</span> <span class="mh">0x34</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">Y</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">Z</span> <span class="o">=</span> <span class="n">Y</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">_DAT_mem_08fd</span> <span class="o">=</span> <span class="mh">0x56</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">FUN_code_00039f</span><span class="p">();</span>
+</span></span><span class="line hl"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// [...]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>The first highlighted block copies <code>0x54</code> bytes from the raw file offset <code>0x7e4</code>
+to the memory block starting at <code>0x0100</code>. This procedure is called
+<code>__do_copy_data</code>, as it loads a <code>.data</code> section. The corresponding (assembler)
+code can be found <a href="https://github.com/gcc-mirror/gcc/blob/4e3c8257304c55f2ebfb24bd6de3236bda0f054e/libgcc/config/avr/lib1funcs.S#L2367"  class="external-link" target="_blank" rel="noopener">in GCC&rsquo;s source
+code</a>.</p>
+<p>The second block erases <code>0xfa</code> bytes in memory, starting from the offset
+<code>0x154</code>, directly after the data segment. This is called <code>__do_clear_bss</code> and is
+also added  <a href="https://github.com/gcc-mirror/gcc/blob/4e3c8257304c55f2ebfb24bd6de3236bda0f054e/libgcc/config/avr/lib1funcs.S#L2436"  class="external-link" target="_blank" rel="noopener">by
+GCC</a>.
+The <code>.bss</code> section contains initial values for static variables.</p>
+<p>The third block is a bit more complicated, but can be ignored for now. It is
+called <code>__do_global_ctors</code> and calls global constructors.</p>
+<p>Note that not all <code>RESET</code> interrupt handlers will contain all three of these
+blocks. GCC will add them if necessary, and thus some simple programs without
+global state will not have them.</p>
+<p>In any case, we can use the offsets and lengths to further refine the memory
+map: Open the <em>Memory Map</em> window through the <em>Window</em> menu. Delete the
+auto-generated <code>mem</code> section. Then, add two sections, one <code>data</code> and one <code>bss</code>
+as shown in the following two screenshots. Make sure to fill in the offsets and
+lengths determined in the step above:</p>
+<p>
+<a href="images/data-section.png"><img src="images/data-section.png" width="720" height="657"  alt="New Data Section" style="width: 40rem;"></a></p>
+<p>
+<a href="images/bss-section.png"><img src="images/bss-section.png" width="720" height="657"  alt="New BSS Section" style="width: 40rem;"></a></p>
+<p>Eventually, your memory map should look like this:</p>
+<p>
+<a href="images/memory-map.png"><img src="images/memory-map.png" width="1459" height="500"  alt="Memory Map"></a></p>
+<p>Note that I configured the <code>data</code> section as read-only because it yielded better
+results in my case. I don&rsquo;t know if GCC will ever put any variable data in that
+area.</p>
+<p>You may need to rerun the analysis in order for Ghidra to pick up on data
+structures in the <code>data</code> section (menu <em>Analysis</em> &gt; <em>Auto Analyze
+&lsquo;blogpost.bin&rsquo;&hellip;</em>).</p>
+<div class="notice info">
+  <div class="notice-title">
+    <i class="fa-solid fa-exclamation-circle" aria-hidden="true"></i>Info
+  </div>
+  <div class="notice-content">Because I name all labels and functions that I&rsquo;ve figured out during analysis,
+you may see labels such as <code>__do_copy_data</code> in subsequent screenshots and
+listings.</div>
+</div>
+
+<h3 id="main-function">
+  Main Function
+  <a class="heading-link" href="#main-function">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<p>There are two remaining functions called in the <code>RESET</code> interrupt handler, in my case <code>FUN_code_00025f</code> and <code>FUN_code_0003a5</code>.
+The latter is a simple infinite empty loop, which GCC calls <code>exit</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">exit</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">do</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="cm">/* WARNING: Do nothing block with infinite loop */</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">while</span><span class="p">(</span> <span class="nb">true</span> <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>The first function is the <code>main</code> function. However, as you might know, the
+Arduino IDE does not let you write a <code>main</code> function yourself, but instead
+requires you write the <code>setup</code> and <code>loop</code> callbacks. These are called directly
+by the <code>main</code> function, which can be found in the file
+<a href="https://github.com/arduino/ArduinoCore-avr/blob/63092126a406402022f943ac048fa195ed7e944b/cores/arduino/main.cpp#L33,L51"  class="external-link" target="_blank" rel="noopener"><code>cores/arduino/main.cpp</code></a>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">init</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">initVariant</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line hl"><span class="cl">  <span class="n">setup</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+</span></span><span class="line hl"><span class="cl">    <span class="n">loop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">serialEventRun</span><span class="p">)</span> <span class="n">serialEventRun</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>In our case, GCC appears to have inlined <code>init</code>, <code>initVariant</code>, <code>setup</code> and <code>loop</code>.
+Therefore, the <code>main</code> function starts with a quite repetitive initializer code:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">byte</span> <span class="n">bVar1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="n">TCCR0A</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span> <span class="o">|</span> <span class="mi">2</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">TCCR0A</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="n">TCCR0A</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span> <span class="o">|</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">TCCR0A</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="n">TCCR0B</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span> <span class="o">|</span> <span class="mi">2</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">TCCR0B</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="n">TCCR0B</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span> <span class="o">|</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">TCCR0B</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="n">TIMSK0</span><span class="p">;</span>
+</span></span><span class="line hl"><span class="cl">  <span class="n">R25R24</span><span class="p">.</span><span class="n">_0_1_</span> <span class="o">=</span> <span class="p">(</span><span class="n">byte</span><span class="p">)</span><span class="n">R25R24</span> <span class="o">|</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// [...]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>These lines set up the timer prescaler values, according to <a href="https://github.com/arduino/ArduinoCore-avr/blob/63092126a406402022f943ac048fa195ed7e944b/cores/arduino/wiring.c#L241,L392"  class="external-link" target="_blank" rel="noopener">the <code>init</code> function
+in
+<code>wiring.c</code></a>
+(here inlined). They are easily recognizable and thus can also be used to find
+<code>init</code> or <code>main</code>.</p>
+<p>Usually, you will also be able to recognize the huge <code>while (true) { [...] }</code>
+loop that repeatedly calls the user-defined <code>loop</code> callback (or its inlined
+instructions).</p>
+<h3 id="discover-strings">
+  Discover Strings
+  <a class="heading-link" href="#discover-strings">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<p>In my experience, Ghidra is worse in detecting strings than binutils&rsquo; <code>strings</code>
+command. Therefore, I wrote <a href="https://github.com/jojonas/ghidra_scripts/blob/main/Strings.java"  class="external-link" target="_blank" rel="noopener">a
+script</a> that
+applies the same logic to Ghidra memory spaces. Compare the before and after:</p>
+<p>
+<a href="images/strings-before.png"><img src="images/strings-before.png" width="2353" height="1267"  alt="Ghidra&amp;rsquo;s &amp;ldquo;Defined Strings&amp;rdquo; window showing a few strings"></a></p>
+<p>
+<a href="images/strings-after.png"><img src="images/strings-after.png" width="2353" height="1267"  alt="More strings showing up in Ghidra&amp;rsquo;s &amp;ldquo;Defined Strings&amp;rdquo; window"></a></p>
+<h3 id="avr-calling-convention">
+  AVR Calling Convention
+  <a class="heading-link" href="#avr-calling-convention">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<p>As someone used to the various x86 and x64 calling conventions (like me), the
+<a href="https://gcc.gnu.org/wiki/avr-gcc#Calling_Convention"  class="external-link" target="_blank" rel="noopener">description of the calling convention used by
+GCC-AVR</a> appears rather unfamiliar.
+To sum it up:</p>
+<ul>
+<li>Single-byte parameters such as <code>char</code> and <code>uint8_t</code> are passed in single
+registers, starting register <code>R24</code>, followed by <code>R22</code>, <code>R20</code>, and so on.</li>
+<li>Two-byte parameters such as <code>int</code> and pointers (e.g. <code>char*</code>) are passed in
+register pairs, starting with <code>R25R24</code>, <code>R23R22</code>, <code>R21R20</code>, and so on.</li>
+<li>A similar algorithm is used for larger arguments. These series continue down to
+<code>R8</code>, other arguments are passed in memory.</li>
+<li>Return values are passed in registers, again starting with <code>R24</code> for
+single-byte values, <code>R25R24</code> for two-byte values and so on.</li>
+</ul>
+<p>With this knowledge we can now understand an invocation like this:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="nf">ldi</span>        <span class="no">R24</span> <span class="p">,</span><span class="mi">0x14</span>
+</span></span><span class="line"><span class="cl"><span class="nf">ldi</span>        <span class="no">R25</span> <span class="p">,</span><span class="mi">0x1</span>
+</span></span><span class="line"><span class="cl"><span class="nf">call</span>       <span class="no">FUN_code_00016c</span>
+</span></span><span class="line"><span class="cl"><span class="nf">ldi</span>        <span class="no">R24</span> <span class="p">,</span><span class="mi">0x30</span>
+</span></span><span class="line"><span class="cl"><span class="nf">ldi</span>        <span class="no">R25</span> <span class="p">,</span><span class="mi">0x1</span>
+</span></span><span class="line"><span class="cl"><span class="nf">call</span>       <span class="no">FUN_code_00016c</span>
+</span></span></code></pre></div><p>These lines appear to correspond to invocations such as:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="nf">FUN_code_00016c</span><span class="p">((</span><span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="mh">0x114</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nf">FUN_code_00016c</span><span class="p">((</span><span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="mh">0x130</span><span class="p">);</span>
+</span></span></code></pre></div><p>Unfortunately, Ghidra did not detect this and shows <code>FUN_code_00016c</code> as a
+<code>void</code> function without parameters. We can fix this by right-clicking the
+function name and choosing <em>Edit Function</em>. Then we add the missing parameter:</p>
+<p>
+<a href="images/edit-function.png"><img src="images/edit-function.png" width="1235" height="872"  alt="Edit function FUN_code_00016c" style="width: 60rem;"></a></p>
+<h3 id="other-things-i-noticed">
+  Other Things I Noticed
+  <a class="heading-link" href="#other-things-i-noticed">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<ul>
+<li>Functions that are usually passed strings probably have the signature <code>char*</code>
+instead of <code>void*</code>.</li>
+<li>If the decompiled code contains many expressions like
+<code>CONCAT11(DAT_mem_0101,DAT_mem_0100)</code> (a <code>CONCAT11</code> of to adjoint memory
+addresses), then the lower address (here <code>DAT_mem_0100</code>, <code>mem:0100</code>) likely
+marks the beginning of a two-byte value (e.g. <code>int</code> or <code>void*</code>).</li>
+</ul>
+<h3 id="final-result">
+  Final Result
+  <a class="heading-link" href="#final-result">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<p>After a bit of fiddling and renaming things, I ended up with the following code for the <code>main</code> function:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// [...]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">  <span class="n">Serial_write</span><span class="p">(</span><span class="s">&#34;ASCII Table ~ Character Map&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Serial_write</span><span class="p">(</span><span class="s">&#34;</span><span class="se">\r\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">R25R24</span> <span class="o">=</span> <span class="n">CONCAT11</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,(</span><span class="n">byte</span><span class="p">)</span><span class="n">counter</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span><span class="p">(</span> <span class="nb">true</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">counter</span> <span class="o">=</span> <span class="n">R25R24</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">FUN_code_0000ff</span><span class="p">(</span><span class="o">&amp;</span><span class="n">CHAR_00h_mem_015d</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_write</span><span class="p">(</span><span class="s">&#34;, dec: &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">R13R12</span> <span class="o">=</span> <span class="n">counter</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">bVar1</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">CARRY1</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">false</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">R15R14</span> <span class="o">=</span> <span class="n">CONCAT11</span><span class="p">(</span><span class="n">bVar1</span><span class="p">,</span><span class="o">-</span><span class="n">CARRY1</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">bVar1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">FUN_code_0000ff</span><span class="p">(</span><span class="o">&amp;</span><span class="n">CHAR_00h_mem_015d</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_print</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_write</span><span class="p">(</span><span class="s">&#34;, hex: &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">R25R24</span> <span class="o">=</span> <span class="n">CONCAT11</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">CARRY1</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">false</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                      <span class="o">-</span><span class="n">CARRY1</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_print</span><span class="p">(</span><span class="n">R25R24</span><span class="p">,</span><span class="n">counter</span><span class="p">,</span><span class="mi">16</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_write</span><span class="p">(</span><span class="s">&#34;, oct: &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">R25R24</span> <span class="o">=</span> <span class="n">CONCAT11</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">CARRY1</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">false</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                      <span class="o">-</span><span class="n">CARRY1</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_print</span><span class="p">(</span><span class="n">R25R24</span><span class="p">,</span><span class="n">counter</span><span class="p">,</span><span class="mi">8</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_write</span><span class="p">(</span><span class="s">&#34;, bin: &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">R25R24</span> <span class="o">=</span> <span class="n">CONCAT11</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">CARRY1</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">false</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                      <span class="o">-</span><span class="n">CARRY1</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">,</span><span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_print</span><span class="p">(</span><span class="n">R25R24</span><span class="p">,</span><span class="n">counter</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Serial_write</span><span class="p">(</span><span class="s">&#34;</span><span class="se">\r\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">byte</span><span class="p">)</span><span class="n">counter</span> <span class="o">==</span> <span class="mi">126</span> <span class="o">&amp;&amp;</span> <span class="n">counter</span><span class="p">.</span><span class="n">_1_1_</span> <span class="o">==</span> <span class="p">(</span><span class="n">byte</span><span class="p">)(</span><span class="n">R1</span> <span class="o">+</span> <span class="p">((</span><span class="n">byte</span><span class="p">)</span><span class="n">counter</span> <span class="o">&lt;</span> <span class="mi">126</span><span class="p">)))</span> <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">R25R24</span> <span class="o">=</span> <span class="n">counter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">do</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="cm">/* WARNING: Do nothing block with infinite loop */</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">while</span><span class="p">(</span> <span class="nb">true</span> <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>In this case, we&rsquo;ve come close enough to the original code to understand what
+it&rsquo;s doing.</p>
+<h3 id="i-cheated">
+  I Cheated
+  <a class="heading-link" href="#i-cheated">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<p>I am sorry to reveal now that I cheated: I figured out most of the presented
+information by cross-referencing my dumped binary with an ELF file containing
+debug symbols. You could argue that this is hindsight, and you would be right.
+But my goal in this post was to convey a few patterns that can help you analyze
+unknown binaries.</p>
+<p>However, if you are in the comfortable position of possessing source code, you
+can generate such an ELF file by running <em>Sketch</em> &gt; <em>Export Compiled Binary</em>
+from the Arduino IDE. The ELF file will contain debug symbols and can be
+directly loaded into Ghidra (again choosing the <code>atmega328</code> processor
+definition). You can even skip the step of refining the memory map as the ELF
+file will contain the corresponding meta information.</p>
+<p>This methodology might also be helpful for you if you analyze an unknown sample:
+Write some experimental code, compile it to an ELF file, analyze both the ELF
+and the compiled binary, cross-reference symbols and extract patterns that might
+help you with the unknown binary.</p>
+<h3 id="conclusion">
+  Conclusion
+  <a class="heading-link" href="#conclusion">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<p>Reverse engineering ATmega328P binaries with Ghidra is possible, but still very
+cumbersome. Especially Ghidra&rsquo;s decompiler does not appear to correctly
+represent some of the peculiarities of this 16-bit architecture. Nevertheless,
+in simple cases, it may be possible to obtain a decent result. And additionally,
+this project was quite fun for me personally, as it gave me an insight into a
+different processor architecture than I&rsquo;m used to working with.</p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>Note that this dumps the entire flash, even if the program only occupies a
+fraction of it. The remaining image might also contain data from previous
+uses, unrelated to the current program.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>Ghidra in theory also supports Intel HEX files, but I experienced problems
+mapping additional memory sections to the HEX file.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+      </div>
+
+
+      <footer>
+        
+
+
+        
+        
+        
+        
+        
+
+        
+      </footer>
+    </article>
+
+    
+  </section>
+
+    </div>
+
+    <footer class="footer">
+  <section class="container">
+    ©
+    
+    2024
+     Jonas Lieb 
+    ·
+    
+    Powered by <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> & <a href="https://github.com/luizdepra/hugo-coder/" target="_blank" rel="noopener">Coder</a>.
+    
+  </section>
+</footer>
+
+  </main>
+
+  
+
+  
+  
+  <script src="/js/coder.min.6ae284be93d2d19dad1f02b0039508d9aab3180a12a06dcc71b0b0ef7825a317.js" integrity="sha256-auKEvpPS0Z2tHwKwA5UI2aqzGAoSoG3McbCw73gloxc="></script>
+  
+
+  
+  
+  
+  <script src="/js/lightbox.min.1248c976bbe76daffff6960aee1ae4cc3836bf28cffcb48888b33ba3942011ff.js" integrity="sha256-EkjJdrvnba//9pYK7hrkzDg2vyjP/LSIiLM7o5QgEf8="></script>
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>
