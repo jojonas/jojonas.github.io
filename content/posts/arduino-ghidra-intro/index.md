@@ -350,14 +350,9 @@ instructions).
 
 ### Discover Strings
 
-In my experience, Ghidra is worse in detecting strings than binutils' `strings`
-command. Therefore, I wrote [a
-script](https://github.com/jojonas/ghidra_scripts/blob/main/Strings.java) that
-applies the same logic to Ghidra memory spaces. Compare the before and after:
-
-![Ghidra's "Defined Strings" window showing a few strings](images/strings-before.png)
-
-![More strings showing up in Ghidra's "Defined Strings" window](images/strings-after.png)
+As Ghidra does not automatically label unreferenced strings, you can force
+detection of other strings using the menu entry _Search_ > _For strings..._.
+This feature works similar to binutils' `strings` command.
 
 ### AVR Calling Convention
 
