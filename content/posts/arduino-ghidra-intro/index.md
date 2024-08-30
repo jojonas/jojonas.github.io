@@ -208,8 +208,7 @@ Because I name all labels and functions that I've figured out during analysis, y
 
 ### Main Function
 
-There are two remaining functions called in the `RESET` interrupt handler, in my case `FUN_code_00025f` and `FUN_code_0003a5`.
-The latter is a simple infinite empty loop, which GCC calls `exit`:
+There are two remaining functions called in the `RESET` interrupt handler, in my case `FUN_code_00025f` and `FUN_code_0003a5`. The latter is a simple infinite empty loop, which GCC calls `exit`:
 
 ```cpp
 void exit(void)
@@ -352,8 +351,7 @@ void main() {
 }
 ```
 
-In this case, we've come close enough to the original code to understand what
-it's doing.
+In this case, we've come close enough to the original code to understand what it's doing - use `counter` to loop over all values from 0 to 126 and print the decimal, hexadecimal, octal and binary representation of each character.
 
 ### Cross-Referencing an ELF
 
