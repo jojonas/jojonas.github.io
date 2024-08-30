@@ -1,0 +1,10 @@
+{{ if .Store.Get "hasMermaid" }}
+  {{ $mermaidURL := "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"}}
+  
+  {{ $script := resources.GetRemote $mermaidURL }}
+  <script src="{{ $script.RelPermalink }}" integrity="{{ ($script | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
+  <script>
+    const isDarkMode = document.documentElement.style.colorScheme == 'dark';
+    mermaid.initialize({ startOnLoad: true, theme: isDarkMode ? 'dark' : 'default' });
+  </script>
+{{ end }}
