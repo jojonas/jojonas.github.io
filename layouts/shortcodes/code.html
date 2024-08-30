@@ -1,0 +1,54 @@
+{{/* inspired by: https://marcusolsson.dev/how-to-include-code-examples-from-file-with-hugo/ */}}
+
+{{ $language := .Get "language" }}
+{{ $source := .Get "source" }}
+{{ $id := .Get "id" }}
+{{ $options := .Get "options" }}
+{{ $dedent := .Get "dedent" | default 0 | int }}
+
+{{ $startTagPrefix := "snippet:start" }}
+{{ $endTagPrefix := "snippet:end" }}
+{{ $ignoreTag := "snippet:ignore" }}
+
+{{/* with .Page.Resources.Get $source */}}
+{{ with path.Join .Page.File.Dir $source | readFile }}
+  {{ $snippet := . }}
+
+  {{ $lines := split $snippet "\n" }}
+  {{ $snippetLines := slice }}
+  
+  {{ if $id }}
+    {{ $startTag := printf "%s %s" $startTagPrefix $id }}
+    {{ $endTag := printf "%s %s" $endTagPrefix $id }}
+
+    {{ $snippetSeen := false }}
+    {{ $inSnippet := false }}
+
+    {{ range $index, $line := $lines }}
+      {{ if hasSuffix $line $startTag }}
+        {{ $inSnippet = true }}
+        {{ $snippetSeen = true }}
+      {{ else if hasSuffix $line $endTag }}
+        {{ $inSnippet = false }}
+      {{ else if and ($inSnippet) (not (hasSuffix $line $ignoreTag)) }}
+        {{ $snippetLines = $snippetLines | append (substr $line $dedent) }}
+      {{ end }}
+    {{ end }}
+
+    {{ if not $snippetSeen }}
+      {{ errorf "Snippet %s not found." $id }}
+    {{ else if $inSnippet }}
+      {{ errorf "Snippet %s not closed." $id }}
+    {{ end }}
+  {{ else }}
+    {{ range $index, $line := $lines }}
+      {{ if and (not (hasSuffix $line $ignoreTag)) (not (in $line $startTagPrefix)) (not (in $line $endTagPrefix)) }}
+        {{ $snippetLines = $snippetLines | append (substr $line $dedent) }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+  
+  {{ $snippet = delimit $snippetLines "\n" }}
+
+  {{ highlight (trim $snippet "\n\r") $language $options }}
+{{ end }}
