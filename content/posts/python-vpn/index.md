@@ -121,4 +121,4 @@ It is very easy to implement a VPN in Python using TUN/TAP devices. The centerpi
  * implement tunneling over TCP (not recommended, but still necessary sometimes)
  * improve encryption (ideally you would use an [AEAD cipher](https://en.wikipedia.org/wiki/Authenticated_encryption))
 
-I will use this implementation in the next blog post, where I will demonstrate how to modify Wireshark to support CrapVPN.
+I will use this implementation in the [next blog post](/blog/wireshark-vpn/), where I will demonstrate how to modify Wireshark to support CrapVPN.
