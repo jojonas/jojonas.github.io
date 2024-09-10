@@ -1,5 +1,4 @@
 +++ 
-draft = true
 date = 2024-08-25T15:07:00+02:00
 title = "A Simple VPN in Python"
 +++
@@ -22,21 +21,21 @@ Only a few lines of Python code are required to create a TUN device (taken from 
 device_name = "tun0"
 ```
 
-{{< code language="python" source="crapvpn_udp.py" id="open_tun" dedent=4 >}}
+{{< code language="python" source="crapvpn.py" id="open_tun" dedent=4 >}}
 
 The function returns a file-like object, i.e. you can call `read()` and `write(...)` on it. Linux by default does not assign an IP address, nor any routes to this interface. The following lines use the `ip` command to configure the device in the peer-to-peer configuration:
 
-{{< code language="python" source="crapvpn_udp.py" id="configure_tun" dedent=4 >}}
+{{< code language="python" source="crapvpn.py" id="configure_tun" dedent=4 >}}
 
 In addition to the local TUN interface, the VPN needs a socket to connect to the remote peer (e.g. via the Internet). For a UDP-based VPN, the code is symetrical on both peers:
 
-{{< code language="python" source="crapvpn_udp.py" id="open_socket" dedent=4 >}}
+{{< code language="python" source="crapvpn.py" id="open_socket" dedent=4 >}}
 
 ## VPN Main Loop
 
 Once both the local TUN interface and the remote socket are set up, the centerpiece can be implemented: A main loop that _simultaneously_ reads packets from the TUN adapter and forwards them via the VPN while also reading packets from the VPN to emit them at the TUN interface. This is a perfect application for the `select` system call:
 
-{{< code language="python" source="crapvpn_udp.py" id="main_loop" options="hl_lines=2" dedent=4 >}}
+{{< code language="python" source="crapvpn.py" id="main_loop" options="hl_lines=2" dedent=4 >}}
 
 During each iteration of the `while` loop, `select` will return the socket that has data available for reading (if any). The code reads the data and processes it.
 
@@ -44,29 +43,36 @@ During each iteration of the `while` loop, `select` will return the socket that 
 
 As described earlier, the packets need to be wrapped and optionally encrypted. My implementation uses [XOR "encryption"](https://en.wikipedia.org/wiki/XOR_cipher) with a static, repeating key (hence the name _CrapVPN_):
 
-{{< code language="python" source="crapvpn_udp.py" id="xor" >}}
+{{< code language="python" source="crapvpn.py" id="xor" >}}
 
 The following diagram shows the encapsulation format:
 
-```mermaid
-classDiagram
-    class CrapVPNPacket
-    CrapVPNPacket : byte[4] magic = "crap"
-    CrapVPNPacket : int16 length
-    CrapVPNPacket : byte[length] ciphertext
+```goat {width=700}
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Magic (4 bytes)                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|        Length (2 bytes)       |       Reserved (2 bytes)      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
++                  Ciphertext (variable length)                 +
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
+
 
 The entire encapsulation can be implemented with the following two functions:
 
-{{< code language="python" source="crapvpn_udp.py" id="vpn" >}}
+{{< code language="python" source="crapvpn.py" id="vpn" >}}
 
 ## Putting It All Together
 
-At this point all central components for the VPN service are done. Here's the full source code, also available as download [here](crapvpn_udp.py):
+At this point all central components for the VPN service are done. Here's the full source code, also available as download [here](crapvpn.py):
 
 <details>
 <summary>Full Source Code</summary>
-{{< code language="python" source="crapvpn_udp.py" >}}
+{{< code language="python" source="crapvpn.py" options="linenos=inline" >}}
 </details>
 
 ### Running the VPN Client

@@ -54,7 +54,7 @@ def xor(data: bytes, key: bytes):
 
 
 # snippet:start vpn
-CRAPVPN_HEADER = ">4sH"
+CRAPVPN_HEADER = ">4sHxx"
 CRAPVPN_MAGIC = b"crap"
 CRAPVPN_HEADER_SIZE = struct.calcsize(CRAPVPN_HEADER)
 
