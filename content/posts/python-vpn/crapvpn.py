@@ -136,7 +136,7 @@ def main(
 ):
     """CrapVPN - a demo VPN implementation by Jonas Lieb (github.com/jojonas)
 
-    See jonaslieb.de/blog/crapvpn/ for details.
+    See jonaslieb.de/blog/python-vpn/ for details.
     """
 
     run(
