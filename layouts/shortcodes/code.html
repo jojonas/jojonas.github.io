@@ -11,7 +11,11 @@
 {{ $ignoreTag := "snippet:ignore" }}
 
 {{/* with .Page.Resources.Get $source */}}
-{{ with path.Join .Page.File.Dir $source | readFile }}
+{{ $filename := path.Join .Page.File.Dir $source }}
+{{ if not (fileExists $filename) }}
+  {{ errorf "File does not exist: %s" $filename }}
+{{ end }}
+{{ with $filename | readFile }}
   {{ $snippet := . }}
 
   {{ $lines := split $snippet "\n" }}
