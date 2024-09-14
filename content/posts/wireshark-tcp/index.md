@@ -1,8 +1,10 @@
-+++ 
-draft = true
-date = 2024-09-03T09:33:34+02:00
-title = "Working with TCP Streams in Wireshark Dissectors"
-+++
+---
+title: "Working with TCP Streams in Wireshark Dissectors"
+date: 2024-10-03T09:33:34+02:00
+draft: true
+tags: ["Wireshark", "Reverse Engineering", "Networking"]
+series: ["Wireshark Dissector Guides"]
+---
 
 
 TCP operates on _streams_, not packets. Stream reassembly is a rather complex process, but it's already implemented in Wireshark and can be used by dissectors. The API is described in [this article from Wireshark's documentation](https://wiki.wireshark.org/Lua/Dissectors#tcp-reassembly), but I found the description rather bulky. 
@@ -71,3 +73,6 @@ From my understanding, the most important things to consider when writing dissec
         buffer = buffer(total_length):tvb()
     until buffer:len() == 0
     ```
+
+
+TODO: look into `dissect_tcp_pdus`
