@@ -139,7 +139,7 @@ Alternatively, you can put this line into `init.lua`, where it will be executed 
 
 ### Passing Values Between Lua And C
 
-While it is (with a few hacks) possible to pass `Tvb` objects from Lua to C, I do not recommend doing so. Most of the time you will only have to pass byte buffers anyway. In that case, I would suggest converting the underlying buffer into a Lua string with `Tvb:raw()` or `TvbRange:raw()`:
+While it is (with a few hacks) possible to access `Tvb` userdata objects in C, I do not recommend doing so, as the C API for getting raw data given a `Tvb` userdata object is internal and may thus be subject to change. The Lua API for getting raw data given a `Tvb` userdata object however is documented. You can convert a `Tvb` or a `TvbRange` to a Lua string with the `:raw()` method:
 
 ```lua
 local input = buffer:raw()
