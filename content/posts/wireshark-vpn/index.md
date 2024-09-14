@@ -1,9 +1,11 @@
-+++ 
-date = 2024-09-09T21:34:49+02:00
-title = "Analyzing Encapsulation with Custom Wireshark Dissectors"
-+++
+---
+title: "Analyzing VPN Protocols with Custom Wireshark Dissectors"
+date: 2024-09-09T21:34:49+02:00
+tags: ["Wireshark", "Reverse Engineering", "Networking"]
+series: ["Wireshark Dissector Guides"]
+---
 
-In the [previous post](/blog/python-vpn/), I presented a ~crappy~ simple VPN service implemented in Python. In this post I'll show how to modify the packet sniffer [Wireshark](https://www.wireshark.org/) to support the VPN. The post is again intended as a template, this time for the creation of Wireshark dissectors, with a focus on tunneling protocols.
+In the [previous post](../python-vpn/), I presented a ~crappy~ simple VPN service implemented in Python. In this post I'll show how to modify the packet sniffer [Wireshark](https://www.wireshark.org/) to support the VPN. The post is again intended as a template, this time for the creation of Wireshark dissectors, with a focus on tunneling protocols.
 
 <!--more-->
 
@@ -11,7 +13,7 @@ In the [previous post](/blog/python-vpn/), I presented a ~crappy~ simple VPN ser
 
 ## Recap: The Example VPN
 
-As a recap, the VPN described in the [previous post](/blog/python-vpn/) uses a TUN device to encapsulate IP packets in UDP packets, with each UDP packet having the following structure:
+As a recap, the VPN described in the [previous post](../python-vpn/) uses a TUN device to encapsulate IP packets in UDP packets, with each UDP packet having the following structure:
 
 ```goat {width=700}
  0                   1                   2                   3
@@ -29,7 +31,7 @@ As a recap, the VPN described in the [previous post](/blog/python-vpn/) uses a T
 
 The VPN uses XOR for encryption, which means that every byte of plaintext is XORed with a key byte. The key repeats to accommodate plaintexts that are longer than the key itself:
 
-{{< code language="python" source="../python-vpn/crapvpn.py" id="xor" >}}
+{{< code language="python" source="../python-vpn/crapvpn.py" snippet="xor" >}}
 
 {{< notice example >}}
 If you want to follow along but do want to set up/run the VPN client, you can find the PCAP file used for this post [here](crapvpn_key0011223344.pcapng). The XOR key used for encryption is `00 11 22 33 44`.
@@ -47,7 +49,7 @@ You can reload all Lua plugins in Wireshark using the menu entry _Analyze_ > _Re
 
 The minimum viable Wireshark dissector consists of the following four components:
 
- 1. A **protocol definition** containing the short name and the description of the protocol:
+ 1. A **protocol definition** containing the short name and the description of the protocol (see the documentation of the [`Proto`](https://www.wireshark.org/docs/wsdg_html_chunked/lua_module_Proto.html#lua_class_Proto) class):
 
     ```lua
     local my_proto = Proto("CrapVPN_UDP", "CrapVPN Protocol (UDP)")
@@ -207,11 +209,11 @@ From a user's perspective, the preferences can be accessed through the context m
 
 ## Full Source Code
 
-The full source code of the dissector created in this article is contained in the following list and it is also available for download [here](crapvpn.lua):
+The full source code of the dissector created in this article is contained in the following list, and it is also available for download [here](crapvpn.lua):
 
 <details>
 <summary>Full Source Code</summary>
-{{< code language="lua" source="crapvpn.lua" options="linenos=inline" >}}
+{{< code language="lua" source="crapvpn.lua" options="linenos=table" >}}
 </details>
 
 

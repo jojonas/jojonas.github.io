@@ -2,7 +2,6 @@ baseURL = "https://jonaslieb.de/"
 title = "Jonas Lieb"
 theme = "hugo-coder"
 defaultContentLanguage = "en"
-paginate = 10
 disableKinds = ["taxonomy"]
 
 [params]
@@ -18,6 +17,7 @@ customSCSS = ["scss/custom.scss"]
 customCSS = ["css/lightbox.css"]
 customJS = ["js/lightbox.js"]
 
+  
 [[params.social]]
 name = "GitHub"
 icon = "fa-brands fa-github fa-2x"
@@ -81,3 +81,6 @@ theme = nan
   [permalinks.section]
     posts = '/blog/'
 
+[taxonomies]
+  tag = 'tags'
+  series = 'series'

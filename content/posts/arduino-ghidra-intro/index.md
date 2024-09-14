@@ -1,10 +1,9 @@
-+++
-title = "The State of Reverse Engineering Arduino Binaries with Ghidra"
-date = 2024-04-07
-publishdate = 2024-04-08
-keywords = ["arduino", "ghidra", "reverse engineering", "atmega328p"]
-draft = false
-+++
+---
+title: "The State of Reverse Engineering Arduino Binaries with Ghidra"
+date: 2024-04-07
+publishdate: 2024-04-08
+tags: ["Arduino", "Reverse Engineering", "Embedded"]
+---
 
 Literature about reverse engineering Arduino binaries using [Ghidra](https://ghidra-sre.org/) appears to be sparse. Therefore, with this post, I want to give a short introduction to the architecture and provide a starting point for analysis. However, since Ghidra only rudimentary supports the ATmega328P (used by the Arduino Uno), the post will also outline the state of the current (April 2024) support for this architecture and demonstrate its limits. 
 

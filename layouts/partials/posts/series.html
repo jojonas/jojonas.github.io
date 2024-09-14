@@ -1,0 +1,42 @@
+{{ if .Params.series }}
+  {{ with (.GetTerms "series") }}    
+    {{ $allSeries := . }}
+    {{ if gt (len $allSeries) 1 }}
+      This post is part of the following series:
+    {{ end }}
+    <div class="notice question">
+      <div class="notice-title">
+        <i class="fa-solid fa-book" aria-hidden="true"></i>
+        Series
+      </div>
+      <div class="notice-content">
+        {{ range $allSeries }}
+          {{ $series := . }}
+          {{ if gt (len $allSeries) 1 }}
+            <h3>{{ .Title }}</h3>
+          {{ else }}
+            {{ $count := len $series.Pages }}
+            {{ $countStr := $count | string }}
+            {{ if lt $count 10 }}
+              {{ $countStr = index (slice "zero" "one" "two" "three" "four" "five" "six" "seven" "eight" "nine") $count }}
+            {{ end }}
+
+            This post is part of the {{ $countStr }}-part series "<b>{{ .Title }}</b>". You might also want to check out:
+          {{ end }}
+          <ol>
+            {{ range $series.Pages.ByDate }}
+            <li>
+              {{ $dateStr := ( .Date | time.Format (.Site.Params.dateFormat | default "January 2, 2006" ) ) }}
+              {{ if eq .File.UniqueID $.File.UniqueID }}
+                <b>{{ .Title }} ({{ $dateStr }})</b>
+              {{ else }}
+                <a href="{{ .RelPermalink }}">{{ .Title }} ({{ $dateStr }})</a>
+              {{ end }}
+            </li>
+            {{ end }}
+          </ol>
+        {{ end }}
+      </div>
+    </div>
+  {{ end }}
+{{ end }}

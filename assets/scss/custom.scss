@@ -1,6 +1,10 @@
 @import "variables";
 
 .post {
+    nav#TableOfContents ul {
+        padding: 0 2rem;
+    }
+
     img {
         /* used in combination with layouts/_default/_markup/render-image.html */
         max-width: 100%;
@@ -17,6 +21,7 @@
     }
 
     code {
+        hyphens: manual;
         overflow-wrap: break-word;
     }
 
@@ -32,6 +37,25 @@
 
     .footnotes {
         font-size: 0.8em;
+    }
+
+    .lntable pre {
+        padding: 0;
+        margin: 0;
+    }
+
+    .mermaid > svg, .goat > svg {
+        display: block;
+        margin: auto;
+        max-width: 100%;
+    }
+
+    .goat > svg {
+        font-size: 1rem;
+    }
+
+    code.language-shell-session .gp {
+        user-select: none;
     }
 }
 
