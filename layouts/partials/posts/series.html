@@ -21,7 +21,7 @@
               {{ $countStr = index (slice "zero" "one" "two" "three" "four" "five" "six" "seven" "eight" "nine") $count }}
             {{ end }}
 
-            This post is part of the {{ $countStr }}-part series "<b>{{ .Title }}</b>". You might also want to check out:
+            This post is part of the {{ $countStr }}-part series "<a href="{{ .RelPermalink }}">{{ .Title }}</a>". You might also want to check out:
           {{ end }}
           <ol>
             {{ range $series.Pages.ByDate }}

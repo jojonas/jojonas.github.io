@@ -3,6 +3,7 @@ title = "Jonas Lieb"
 theme = "hugo-coder"
 defaultContentLanguage = "en"
 disableKinds = ["taxonomy"]
+enableRobotsTXT = true
 
 [params]
 author = "Jonas Lieb"
