@@ -1,71 +1,100 @@
 @import "variables";
 
 .post {
+    p {
+        /* undo "white-space: pre-wrap" in _base.scss */
+        white-space: normal;
+    }
+
     nav#TableOfContents ul {
         padding: 0 2rem;
     }
 
-    img {
+    img, svg, .mermaid > svg, .goat > svg {
         /* used in combination with layouts/_default/_markup/render-image.html */
         max-width: 100%;
         height: auto;
-    }
 
-    img {
         /* center images */
         display: block;
         margin: auto;
+    }
 
-        /* add border */
-        border: 1px solid rgba(0, 0, 0, 0.2);
+    .goat > svg {
+        /* reset the font size on goat diagrams */
+        font-size: 1rem;
+    }
+
+
+    svg {
+        /* Define classes for SVGs that adapt to the color scheme */
+
+        .stroke-fg {
+            stroke: $fg-color !important;
+            body.colorscheme-dark & { stroke: $fg-color-dark !important; }
+        }
+
+        .fill-fg {
+            fill: $fg-color !important;
+            body.colorscheme-dark & { fill: $fg-color-dark !important; }
+        }
+
+        .stroke-bg {
+            stroke: $bg-color !important;
+            body.colorscheme-dark & { stroke: $bg-color-dark !important; }
+        }
+
+        .fill-bg {
+            fill: $bg-color !important;
+            body.colorscheme-dark & { fill: $bg-color-dark !important; }
+        }
     }
 
     code {
+        /* break inline code (at some places) */
         hyphens: manual;
         overflow-wrap: break-word;
     }
 
+    code.language-shell-session .gp {
+        /* prevent selecting the command line prompt */
+        user-select: none;
+    }
+    
+    .lntable pre {
+        /* prevent additional margins around line numbers in code blocks */
+        padding: 0;
+        margin: 0;
+    }
+
     table th {
+        /* stick table headers to top when scrolling */
         position: sticky;
         top: 0;
     }
 
     table thead th {
+        /* style table headers */
         background-color: $alt-bg-color;
         color: $alt-fg-color;
+
+        body.colorscheme-dark & {
+            background-color: $alt-bg-color-dark;
+            color: $alt-fg-color-dark;
+        }
     }
 
     .footnotes {
+        /* make footnotes smaller */
         font-size: 0.8em;
     }
-
-    .lntable pre {
-        padding: 0;
-        margin: 0;
-    }
-
-    .mermaid > svg, .goat > svg {
-        display: block;
-        margin: auto;
-        max-width: 100%;
-    }
-
-    .goat > svg {
-        font-size: 1rem;
-    }
-
-    code.language-shell-session .gp {
-        user-select: none;
-    }
 }
 
-body.colorscheme-dark .post table thead th {
-    background-color: $alt-bg-color-dark;
-    color: $alt-fg-color-dark;
-}
 
+/* Use colorscheme "github" by default (i.e. when using the light colorscheme) */
 @import "github";
 
 body.colorscheme-dark {
+    /* Use colorscheme "gruvbox" when using the dark colorscheme */
     @import "gruvbox";
 }

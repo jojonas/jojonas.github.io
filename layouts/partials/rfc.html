@@ -1,0 +1,19 @@
+{{- $id := .ID -}}
+
+{{- $title := "" -}}
+
+{{- with resources.GetRemote (printf "https://datatracker.ietf.org/api/v1/doc/document/rfc%d/" $id) -}}
+    {{- with .Err -}}
+        {{- errorf "%s" . -}}
+    {{- else -}}
+        {{- $metadata := . | transform.Unmarshal -}}
+        {{- $title = printf "RFC %d - %s" $id $metadata.title -}}
+    {{- end -}}
+{{- end -}}
+
+{{- $text := .Text -}}
+{{- if not $text -}}
+    $text = printf "RFC %d (%s)" $id $title
+{{- end -}}
+
+<a class="external-link" target="_blank" href="https://datatracker.ietf.org/doc/html/rfc{{ $id }}" title="{{ $title }}">{{ $text }}</a>

@@ -1,8 +1,14 @@
-{{ $image := .Page.Resources.GetMatch (printf "%s" (.Destination | safeURL)) -}}
-{{- $preview := $image.Resize (printf "%dx%d webp" $image.Width $image.Height) -}}
-<a href="{{ .Destination | safeURL }}"><img src="{{ $preview.Permalink }}"
-  {{- with $image }} width="{{ $image.Width }}" height="{{ $image.Height }}" {{ end -}}
-  {{- with .Text }} alt="{{ . }}"{{ end -}}
-  {{- with .Title}} style="width: {{ . }};"{{ end -}}
-></a>
+{{ $image := .PageInner.Resources.Get .Destination -}}
+<a href="{{ $image.RelPermalink }}">
+{{- if eq $image.MediaType.SubType "svg" -}}
+  {{- $image.Content | replaceRE `^<\?xml[^>]+\?>` "" | safeHTML -}}
+{{- else -}}
+  {{- $preview := $image.Resize (printf "%dx%d webp" $image.Width $image.Height) -}}
+  <img src="{{ $preview.Permalink }}"
+    {{- with $image }} width="{{ $image.Width }}" height="{{ $image.Height }}" {{ end -}}
+    {{- with .Text }} alt="{{ . }}"{{ end -}}
+    {{- with .Title}} style="width: {{ . }};"{{ end -}}
+  >
+{{- end -}}
+</a>
 {{- /* chomp trailing newline */ -}}

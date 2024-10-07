@@ -1,11 +1,11 @@
 ---
-title: "The State of Reverse Engineering Arduino Binaries with Ghidra"
+title: "Reverse Engineering Arduino Binaries with Ghidra"
 date: 2024-04-07
 publishdate: 2024-04-08
 tags: ["Arduino", "Reverse Engineering", "Embedded"]
 ---
 
-Literature about reverse engineering Arduino binaries using [Ghidra](https://ghidra-sre.org/) appears to be sparse. Therefore, with this post, I want to give a short introduction to the architecture and provide a starting point for analysis. However, since Ghidra only rudimentary supports the ATmega328P (used by the Arduino Uno), the post will also outline the state of the current (April 2024) support for this architecture and demonstrate its limits. 
+Reverse engineering binaries for embedded devices like the Arduino can provide valuable insights for security researchers, but documentation on how to do so — especially using tools like [Ghidra](https://ghidra-sre.org/) — is surprisingly limited. This post will provide a short introduction to the architecture and serve as a starting point for the analysis. As of April 2024, Ghidra's support for the ATmega328P (used by the Arduino Uno) is still evolving, which we'll explore in detail.
 
 <!--more-->
 
@@ -13,9 +13,9 @@ _Disclaimer: At daytime, I work in offensive IT security, which requires some le
 
 ## Test Setup
 
-I will be working with the [Arduino Uno Rev 3](https://store.arduino.cc/products/arduino-uno-rev3). Maybe in the future I'll focus on other Arduino models and Arduino-like platforms, for example the Arduino Micro or the ESP8266, but for now this must suffice.
+I will be working with the [Arduino Uno Rev 3](https://store.arduino.cc/products/arduino-uno-rev3). In the future I might also explore other Arduino models and Arduino-like platforms, for example the Arduino Micro or the ESP8266.
 
-Also, I will be using the example project ["ASCIITable"](https://docs.arduino.cc/built-in-examples/communication/ASCIITable/) that is shipped with the Arduino IDE. You can find its source code [on GitHub](https://github.com/arduino/arduino-examples/blob/5d991a2ce69d22e8b21a1ee89ec715f093d45276/examples/04.Communication/ASCIITable/ASCIITable.ino) if you want to ~~follow along~~ cheat, but for now, let's pretend that we lost the source code.
+Also, I will be using the example project ["ASCIITable"](https://docs.arduino.cc/built-in-examples/communication/ASCIITable/) that is shipped with the Arduino IDE. You can find its source code [on GitHub](https://github.com/arduino/arduino-examples/blob/5d991a2ce69d22e8b21a1ee89ec715f093d45276/examples/04.Communication/ASCIITable/ASCIITable.ino) if you want to ~~cheat~~ follow along, but I will not expect any familiarity with the project.
 
 ## Dumping the Flash
 
@@ -29,11 +29,15 @@ avrdude "-C/etc/avrdude.conf" -v -V -patmega328p -carduino -P/dev/ttyUSB1 -b1152
 
 If you would like to reproduce this, you might need to change `/dev/ttyUSB1` for the serial port that the Arduino is registered at, which you can list using `ls /dev/ttyUSB*`. The same also works on Windows, where the serial port is called something like `COM1`.
 
-The invocation generates the file `blogpost.bin` which contains the flash contents as raw binary. If you obtained the flash contents in [Intel HEX format](https://en.wikipedia.org/wiki/Intel_HEX) (which is a bit more common), you could convert this file to raw binary using the following command[^2]:
+The invocation generates the file `blogpost.bin` which contains the flash contents as raw binary. If you obtained the flash contents in [Intel HEX format](https://en.wikipedia.org/wiki/Intel_HEX) (which is a bit more common), you could convert this file to a raw binary using the following command[^2]:
 
 ```shell
 objcopy --input-target=ihex --output-target=binary blogpost.hex blogpost.bin
 ```
+
+{{< notice example >}}
+If you just want to follow along, you can also [download my `blogpost.bin`](blogpost.bin).
+{{< /notice >}}
 
 [^2]: Ghidra in theory also supports Intel HEX files, but I experienced problems mapping additional memory sections to the HEX file.
 
@@ -42,12 +46,12 @@ objcopy --input-target=ihex --output-target=binary blogpost.hex blogpost.bin
 At the heart of the Arduino Uno is the AVR (formerly _Atmel_) ATmega328P 8-bit microcontroller ([datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf)).
 
 {{< notice info >}} 
-"8 bit" in this context means that operations usually operate on 8-bit values (0 to 255, or -127 to 128) and registers therefore are also 8 bit in size. However, instructions are either 16 or 32 bit wide and therefore addressing is done in 16-bit blocks. Therefore, registers are often used in pairs.
+"8 bit" in this context means that operations handle 8 bits at a time (0 to 255, or -127 to 128). Registers are also 8 bits wide. As 8 bits are insufficient for storing pointers, which are at least 16 bits in size, pointers are usually stored in pairs of registers.
 {{< /notice >}}
 
-Unfortunately, Ghidra does not directly support this microcontroller. The good news is, though, that it supports similar AVR 8-bit microcontrollers and someone already wrote some helper files for the ATmega328 (shoutout to GitHub user [@ahroach](https://github.com/ahroach)).
+Unfortunately, Ghidra does not directly support the ATmega328P. The good news is, though, that it supports similar AVR 8-bit microcontrollers and GitHub user [@ahroach](https://github.com/ahroach) already wrote helper files to retrofit ATmega328P support.
 
-First, we need to place the file [github.com/ahroach/avr_ghidra_helpers/atmega328.pspec](https://github.com/ahroach/avr_ghidra_helpers/blob/a98c18b2ec627a6a2e16df360f98ce59a00eb187/atmega328.pspec) in the directory `Ghidra/Processors/Atmel/data/languages`. Then, we modify the file `Ghidra/Processors/Atmel/data/languages/avr8.ldefs` and add the `<language>` tag highlighted in the following listing:
+First, place the file [github.com/ahroach/avr_ghidra_helpers/atmega328.pspec](https://github.com/ahroach/avr_ghidra_helpers/blob/a98c18b2ec627a6a2e16df360f98ce59a00eb187/atmega328.pspec) in the directory `Ghidra/Processors/Atmel/data/languages`. Then, modify the file `Ghidra/Processors/Atmel/data/languages/avr8.ldefs` and add the `<language>` tag highlighted in the following listing:
 
 
 ```xml {hl_lines=["6-20"]}
@@ -66,7 +70,7 @@ First, we need to place the file [github.com/ahroach/avr_ghidra_helpers/atmega32
             manualindexfile="../manuals/AVR8.idx"
             id="avr8:LE:16:atmega328">
     <description>AVR8 for an Atmega 328</description>
-    <compiler name="gcc"        spec="avr8egcc.cspec"        id="gcc"/>
+    <compiler name="gcc" spec="avr8egcc.cspec" id="gcc"/>
     <external_name tool="gnu" name="avr:51"/>
     <external_name tool="gnu" name="avr:6"/>
     <external_name tool="IDA-PRO" name="avr"/>
@@ -76,7 +80,7 @@ First, we need to place the file [github.com/ahroach/avr_ghidra_helpers/atmega32
 </language_definitions>
 ```
 
-Restart Ghidra and you should be able to improt files for the `atmega328` architecture configuration.
+Restart Ghidra and you should be able to import files for the `atmega328` architecture configuration.
 
 ## Analysis in Ghidra
 
@@ -96,7 +100,7 @@ You should now see the program's memory in Ghidra's CodeBrowser.
 
 ### Interrupt Vector Table
 
-A good starting point for understanding the program is the [Interrupt Vector Table](https://en.wikipedia.org/wiki/Interrupt_vector_table). This table is usually located at the address `0x00000000` and contains `jmp` instructions (so-called _interrupt handlers_) that the processor calls when an interrupt occurs, i.e. "something important happens". The table from the [ATmega258P datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf) lists the expected entries.
+A good starting point for understanding the program is the [Interrupt Vector Table](https://en.wikipedia.org/wiki/Interrupt_vector_table). This table is usually located at the address `0x00000000` and consists of several `jmp` instructions (so-called _interrupt handlers_) that the processor calls when an interrupt occurs, i.e. "something important happens". The table from the [ATmega258P datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf) lists the expected entries.
 
 <details>
   <summary>Show Interrupt Vector Table</summary>
@@ -104,7 +108,7 @@ A good starting point for understanding the program is the [Interrupt Vector Tab
   |Program Address|Source|Interrupt Definition|
   |-|-|-|
   |0x0000|RESET| External pin, power-on reset, brown-out reset and watchdog system reset |
-  |0x002|INT0| External interrupt request 0 |
+  |0x0002|INT0| External interrupt request 0 |
   |0x0004|INT1| External interrupt request 1 |
   |0x0006|PCINT0| Pin change interrupt request 0 |
   |0x0008|PCINT1| Pin change interrupt request 1 |
@@ -354,7 +358,7 @@ In this case, we've come close enough to the original code to understand what it
 
 ### Cross-Referencing an ELF
 
-I am sorry to reveal now that I cheated: I figured out most of the presented information by cross-referencing my dumped binary with an ELF file containing debug symbols. You could argue that this is hindsight, and you would be right. But my goal in this post was to convey a few patterns that can help you analyze unknown binaries.
+At this point I have to reveal that I cheated a bit: I figured out most of the presented information by cross-referencing my dumped binary with an ELF file containing debug symbols. You could argue that this is hindsight, and you would be right. But my goal in this post was to convey a few patterns that can help you analyze unknown binaries.
 
 However, if you are in the comfortable position of possessing source code, you can generate such an ELF file by running _Sketch_ > _Export Compiled Binary_ from the Arduino IDE. The ELF file will contain debug symbols and can be directly loaded into Ghidra (again choosing the `atmega328` processor definition). You can even skip the step of refining the memory map as the ELF file will contain the corresponding meta information.
 
