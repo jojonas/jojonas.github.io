@@ -1,0 +1,2 @@
+{{- $id := int (index .Params 0) -}}
+{{ partial "rfc.html" (dict "ID" $id "Text" .Inner )}}

@@ -35,8 +35,7 @@ do
     end
 
     function crapvpn_proto.dissector(buffer, pinfo, tree)
-        local length = buffer:len()
-        if length == 0 then return end
+        if buffer:len() == 0 then return end
 
         pinfo.cols.protocol = crapvpn_proto.name
         local subtree = tree:add(crapvpn_proto, buffer(), crapvpn_proto.description)
@@ -51,7 +50,6 @@ do
 
         local ciphertext_length_buffer = buffer(4, 2)
         subtree:add(fields.ciphertext_length, ciphertext_length_buffer)
-
 
         local ethertype_buffer = buffer(6, 2)
         subtree:add(fields.ethertype, ethertype_buffer)

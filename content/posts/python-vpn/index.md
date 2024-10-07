@@ -1,19 +1,19 @@
 ---
-title: "A Simple VPN in Python"
+title: "Implementing Layer-3 VPN Protocols in Python"
 date: 2024-08-25T15:07:00+02:00
 tags: ["Python", "Reverse Engineering", "Networking"]
 series: ["Wireshark Dissector Guides"]
 ---
 
-In this post I want to provide an annotated template for implementing tunneling protocols in Python. In the process, I want to familiarize you with a couple of core concepts such as tunneling, TUN/TAP interfaces and packet encapsulation. Also, this post will be the first in a multipart series, as I will be demonstrating how to analyze tunneling protocols in Wireshark in the latter parts.
+In this post, we'll explore a practical approach to implementing tunneling protocols in Python. Along the way, you'll gain an understanding of key concepts such as tunneling, TUN/TAP interfaces, and packet encapsulation. This post will be the first in a multipart [series](/series/wireshark-dissector-guides/), where I will also demonstrate how to analyze tunneling protocols in Wireshark.
 
 <!--more-->
 
-So what is a VPN exactly? Practically speaking, a VPN is a technology that allows to transport (or _tunnel_) network traffic from one system to another: Packets enter the tunnel on one end and exit on the other end. That's it, and it will not modify anything! However, it protects your data in transit between both tunnel ends, by encrypting the network packet bytes and wrapping the ciphertext in larger packets. This process is called _encapsulation_.
+## VPNs and TUN/TAP Devices
 
-## TUN/TAP Devices
+A VPN (Virtual Private Network) is a technology that allows network traffic to be securely tunneled from one system to another. By encapsulating packets using cryptographic methods and wrapping the ciphertext in larger packets, VPNs protect data in transit between the endpoints.
 
-A very common way of entering (and exiting) the tunnel is a _virtual network adapter_. Its greatest advantage is that one can apply tools and concepts also commonly used with _physical_ network adapters. On Linux there are (at least) two kinds of tunneling adapters: TUN and TAP devices. TUN devices operate on layer 3 of the OSI model, the network layer. The most common layer-3 protocols are IPv4 and IPv6. This means that TUN devices can ingest and emit IP packets, but not Ethernet frames. Network devices on both ends of the tunnel can communicate via IP routing, but are not in the same LAN. Tunneling Ethernet frames can be achieved with a TAP device, which operates on layer 2. While this allows systems to reach each other via broadcast, it also results overhead in terms of performance and complexity[^1]. Therefore, this post will focus on layer-3 implementations.
+A very common way for bytes to enter and exit that tunnel is a _virtual network adapter_. Its main advantage is the option to apply many of the same tools and concepts used for _physical_ network adapters. On Linux, there are at least two kinds of virtual adapters: TUN and TAP devices. TUN devices operate on layer 3 of the OSI model, the network layer. The most common layer-3 protocols are IPv4 and IPv6. As layer-3 devices, TUN adapters can ingest and emit IP packets, but not Ethernet frames. Network devices on both ends of the tunnel can communicate via IP routing, but are not in the same LAN. Tunneling Ethernet frames can be achieved with a TAP device, which operates on layer 2. While this allows systems to reach each other via broadcast, it also introduces overhead in terms of performance and complexity[^1]. This post will focus on layer-3 tunneling, but the results can easily be adapted for a layer-2 VPN.
 
 [^1]: More on the advantages and disadvantages of TUN and TAP devices can be found in the [OpenVPN wiki](https://community.openvpn.net/openvpn/wiki/BridgingAndRouting).
 
@@ -49,6 +49,8 @@ As described earlier, the packets need to be wrapped and optionally encrypted. M
 
 The following diagram shows the encapsulation format:
 
+<!-- python3 protocol "Magic (4 bytes):32,Length (2 bytes):16,Reserved (2 bytes):16,Ciphertext (variable length):64"
+ -->
 ```goat {width=700}
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -79,21 +81,21 @@ At this point all central components for the VPN service are done. Here's the fu
 
 ### Running the VPN Client
 
-The full version has a command-line interface that accepts the key, the remote peer's IP address and the addresses to be configured inside the tunnel. It can be used as follows...
+The full version has a command-line interface that accepts the key, the remote peer's IP address and the addresses to be configured inside the tunnel.
 
-Host A:
+Start the CrapVPN client on host A, specifying host B's IP address with the `-p` ("peer") parameter:
 
 ```shell-session
 $ sudo ./crapvpn.py -k 1234ABCD -p <Host_B_IP> 192.168.2.1 192.168.2.2
 ```
 
-Host B:
+Then start the script on host B, this time specifying host A's IP address. Also note that the IP addresses in the tunnel (`192.168.2.2` and `192.168.2.1`) are reversed in this second invocation:
 
 ```shell-session
 $ sudo ./crapvpn.py -k 1234ABCD -p <Host_A_IP> 192.168.2.2 192.168.2.1
 ```
 
-Then you should be able to send data from the host `192.168.2.1` to host `192.168.2.2` and vice versa, for example by sending an ICMP echo request:
+Now you should be able to send data from the host `192.168.2.1` to host `192.168.2.2` and vice versa, for example an ICMP echo request:
 
 ```shell-session
 $ ping -c 3 192.168.2.2
@@ -107,20 +109,24 @@ PING 192.168.2.2 (192.168.2.2) 56(84) bytes of data.
 rtt min/avg/max/mdev = 0.623/0.648/0.697/0.034 ms
 ```
 
+If you run an HTTP server on one of the hosts, you can send queries from the other endpoint:
+
 ```shell-session
-$ curl -I http://192.168.2.2:8000/      
+$ curl -i http://192.168.2.2:8000/      
 HTTP/1.0 200 OK
 Server: SimpleHTTP/0.6 Python/3.11.9
 Date: Sun, 25 Aug 2024 17:54:13 GMT
 Content-type: text/html; charset=utf-8
 Content-Length: 652
+
+[...]
 ```
 
 ## Conclusion
 
-It is very easy to implement a VPN in Python using TUN/TAP devices. The centerpiece is a main-loop that simultaneously handles packets going in both directions. The code I presented is supposed to act as a template for learning and for tinkering with unknown encapsulation protocols. Here are some ideas, in which the code can be adapted:
+It is very easy to implement a VPN in Python using TUN/TAP devices. The centerpiece is a main-loop that simultaneously handles packets going in both directions. The code I presented is supposed to act as a template for learning and for tinkering with unknown encapsulation protocols. Here are some directions in which the code can be adapted:
  * switch to a layer-2 VPN (if you need it)
  * implement tunneling over TCP (not recommended, but still necessary sometimes)
- * improve encryption (ideally you would use an [AEAD cipher](https://en.wikipedia.org/wiki/Authenticated_encryption))
+ * improve encryption and add integrity protection (ideally you would use an [AEAD cipher](https://en.wikipedia.org/wiki/Authenticated_encryption))
 
-I will use this implementation in the [next blog post](../wireshark-vpn/), where I will demonstrate how to modify Wireshark to support CrapVPN.
+I will use this implementation in the [next blog post](../wireshark-vpn/), where I will demonstrate how to write a Wireshark plugin ("dissector") for CrapVPN.

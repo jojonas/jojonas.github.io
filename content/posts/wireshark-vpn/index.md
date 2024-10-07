@@ -1,11 +1,11 @@
 ---
-title: "Analyzing VPN Protocols with Custom Wireshark Dissectors"
+title: "Analyzing VPN Protocols with Wireshark"
 date: 2024-09-09T21:34:49+02:00
 tags: ["Wireshark", "Reverse Engineering", "Networking"]
 series: ["Wireshark Dissector Guides"]
 ---
 
-In the [previous post](../python-vpn/), I presented a ~crappy~ simple VPN service implemented in Python. In this post I'll show how to modify the packet sniffer [Wireshark](https://www.wireshark.org/) to support the VPN. The post is again intended as a template, this time for the creation of Wireshark dissectors, with a focus on tunneling protocols.
+In the [previous post](../python-vpn/), I demonstrated how to implement a simple VPN service in Python. In this post I'll show how to write a plugin for the packet sniffer [Wireshark](https://www.wireshark.org/) in order to analyze the VPN. The post is again intended as a general template, this time for the creation of Wireshark dissectors, with a focus on tunneling protocols.
 
 <!--more-->
 
@@ -34,12 +34,12 @@ The VPN uses XOR for encryption, which means that every byte of plaintext is XOR
 {{< code language="python" source="../python-vpn/crapvpn.py" snippet="xor" >}}
 
 {{< notice example >}}
-If you want to follow along but do want to set up/run the VPN client, you can find the PCAP file used for this post [here](crapvpn_key0011223344.pcapng). The XOR key used for encryption is `00 11 22 33 44`.
+If you want to follow along but don't want to set up/run the VPN client, you can find the PCAP file used for this post [here](crapvpn_key0011223344.pcapng). The XOR key used for encryption is `00 11 22 33 44`.
 {{< /notice >}}
 
 ## Wireshark Dissectors
 
-Most Wireshark dissectors are written in C. Their source code can be found in the Wireshark source directory [`/epan/dissectors`](https://github.com/wireshark/wireshark/tree/master/epan/dissectors). However, for personal use and prototyping, Wireshark also supports dissectors written in Lua. By default, Wireshark loads all Lua plugins in the [plugin folders](https://www.wireshark.org/docs/wsug_html_chunked/ChPluginFolders.html). The personal plugin folder is located at `~/.local/lib/wireshark/plugins` on Linux and at `%APPDATA%\Wireshark\plugins` on Windows[^1], and if you place a `<name>.lua` file there, it will be picked up at the next start or when plugins are reloaded.
+Most Wireshark dissectors are written in C. Their source code can be found in the Wireshark source directory [`/epan/dissectors`](https://github.com/wireshark/wireshark/tree/master/epan/dissectors). However, for research and prototyping, Wireshark also supports dissectors written in Lua. By default, Wireshark loads all Lua plugins in the [plugin folders](https://www.wireshark.org/docs/wsug_html_chunked/ChPluginFolders.html). The personal plugin folder is located at `~/.local/lib/wireshark/plugins` on Linux and at `%APPDATA%\Wireshark\plugins` on Windows[^1], and if you place a `<name>.lua` file there, it will be picked up at the next start or when plugins are reloaded.
 
 {{< notice tip >}}
 You can reload all Lua plugins in Wireshark using the menu entry _Analyze_ > _Reload Lua Plugins_ or the keyboard shortcut `Ctrl`+`Shift`+`L`.
@@ -69,6 +69,9 @@ The minimum viable Wireshark dissector consists of the following four components
 
     ```lua
     function my_proto.dissector(buffer, pinfo, tree)
+        pinfo.cols.protocol = my_proto.name
+        local subtree = tree:add(crapvpn_proto, buffer(), crapvpn_proto.description)
+        
         subtree:add(fields.magic_bytes, buffer(0, 4))
         subtree:add(fields.ciphertext_length, buffer(4, 2))
     end
@@ -85,19 +88,24 @@ The minimum viable Wireshark dissector consists of the following four components
 
 At this point, the dissector will perform like this:
 
-![CrapVPN Tunneling Protocol in Wireshark](images/crapvpn-raw.png "60rem")
+![CrapVPN Tunneling Protocol in Wireshark](images/crapvpn-raw.png)
+
+In the screenshot you can see that in the packet list, the "protocol" column is set to "CRAPVPN_UDP" for packets sent to or originating from UDP port 1337. Additionally, in the lower-left-hand corner you can see that the two fields "Magic Bytes" and "Ciphertext length" have been added to the tree, with corresponding values. If you hover over the fields, the associated bytes will be highlighted in the hexdump on the lower-right-hand pane.
 
 ## Working With Values
 
 These four components are the minimum and may even suffice for some simple applications. However, if the dissection depends on the result of a field (for example the `length` field), things become a bit more complicated. Contrary to (my?) intuition, it is not possible to query the tree for parsed values. Instead, during dissection one has to call the [documented](https://www.wireshark.org/docs/wsdg_html_chunked/lua_module_Tvb.html#lua_class_TvbRange) methods on the associated `TvbRange`, as shown in the following example:
 
-```lua {hl_lines=[3,11]}
+```lua {hl_lines=[3,14]}
 function my_proto.dissector(buffer, pinfo, tree)
     local magic_bytes_buffer = buffer(0, 4)
     if magic_bytes_buffer:string() ~= "crap" then
         -- packet is not for us
         return 0
     end
+
+    pinfo.cols.protocol = my_proto.name
+    local subtree = tree:add(crapvpn_proto, buffer(), crapvpn_proto.description)    
 
     subtree:add(fields.magic_bytes, magic_bytes_buffer)
 
@@ -112,7 +120,7 @@ end
 
 ## Working With Derived Byte Arrays
 
-If your protocol derives byte arrays that are not directly part of the original packet, for example through reassembly or decryption, you can create a [`ByteArray`](https://www.wireshark.org/docs/wsdg_html_chunked/lua_module_Tvb.html#lua_class_ByteArray), fill it with derived bytes and then call `tvb("<name>")` on it, for example:
+If your protocol derives byte arrays that are not directly part of the original packet, for example through reassembly or decryption, you can create a [`ByteArray`](https://www.wireshark.org/docs/wsdg_html_chunked/lua_module_Tvb.html#lua_class_ByteArray) instance, fill it with derived bytes and then call `tvb("<name>")` on it, for example:
 
 ```lua {hl_lines=5}
 function my_proto.dissector(buffer, pinfo, tree)
@@ -125,7 +133,7 @@ end
 
 This will cause Wireshark to display your bytes in a second tab in the lower right corner:
 
-![Result of Creating A Custom Tvb](images/crapvpn-plaintext-annotated.png "60rem")
+![Result of Creating A Custom Tvb](images/crapvpn-plaintext-annotated.png)
 
 ## Calling Sub-Dissectors
 
@@ -159,7 +167,7 @@ Calling sub-dissectors has the following advantages:
 
 The following screenshot shows the results of calling the IP dissectors:
 
-![Result of Calling the IP Sub-dissector](images/crapvpn-subdissector.png "60rem")
+![Result of Calling the IP Sub-dissector](images/crapvpn-subdissector.png)
 
 If the sub-dissector is determined dynamically, for example by an identifier in the encapsulation header, the dissector can be fetched from a [`DissectorTable`](https://www.wireshark.org/docs/wsdg_html_chunked/lua_module_Proto.html#lua_class_DissectorTable), which is a mapping of integers and strings to dissectors. If the encapsulation for example contained a field for the [EtherType](https://en.wikipedia.org/wiki/EtherType), you can fetch the sub-dissector as follows:
 
@@ -181,7 +189,7 @@ ethertype_dissector_table:try(ethertype, plaintext_tvb, pinfo, tree)
 ```
 
 {{< notice tip >}}
-In addition to `ethertype`, Wireshark contains a long list of predefined dissector tables, which you can list by entering the following command in the Lua console (_Tools_ > _Lua Console_):
+In addition to `ethertype`, Wireshark contains a long list of predefined dissector tables, which you can list by running the following command in the Lua console (_Tools_ > _Lua Console_):
 
 ```lua
 for _, v in pairs(DissectorTable.list()) do print(v) end
@@ -205,7 +213,7 @@ my_proto.prefs.key
 
 From a user's perspective, the preferences can be accessed through the context menu on a matching packet or via the dialogue _Edit_ > _Preferences..._:
 
-![Custom Preferences](images/crapvpn-settings.png "40rem")
+![Custom Preferences](images/crapvpn-settings.png "60rem")
 
 ## Full Source Code
 
