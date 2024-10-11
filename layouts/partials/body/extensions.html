@@ -7,3 +7,7 @@
     mermaid.initialize({ startOnLoad: true, theme: isDarkMode ? 'dark' : 'default' });
   </script>
 {{ end }}
+
+{{ if not hugo.IsServer }}
+  <script data-goatcounter="https://jojonas.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+{{ end }}

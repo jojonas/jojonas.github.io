@@ -62,9 +62,9 @@ framesrc = ["'self'"]
 imgsrc = ["'self'"]
 objectsrc = ["'none'"]
 stylesrc = ["'self'", "'unsafe-inline'"]
-scriptsrc = ["'self'", "'unsafe-inline'"]
+scriptsrc = ["'self'", "'unsafe-inline'", "https://gc.zgo.at"]
 prefetchsrc = ["'self'"]
-connectsrc = ["'self'"]
+connectsrc = ["'self'", "https://jojonas.goatcounter.com/count"]
 
 [markup.goldmark.renderHooks.image]
 enableDefault = true
