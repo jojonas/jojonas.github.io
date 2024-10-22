@@ -15,18 +15,12 @@ In the [previous post](../python-vpn/), I demonstrated how to implement a simple
 
 As a recap, the VPN described in the [previous post](../python-vpn/) uses a TUN device to encapsulate IP packets in UDP packets, with each UDP packet having the following structure:
 
-```goat {width=700}
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                        Magic (4 bytes)                        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|        Length (2 bytes)       |       Reserved (2 bytes)      |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                                                               |
-+                  Ciphertext (variable length)                 +
-|                                                               |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```mermaid
+packet-beta
+0-31: "Magic (4 bytes)"
+32-47: "Length (2 bytes)"
+48-63: "Reserved (2 bytes)"
+64-95: "Ciphertext (variable length)"
 ```
 
 The VPN uses XOR for encryption, which means that every byte of plaintext is XORed with a key byte. The key repeats to accommodate plaintexts that are longer than the key itself:

@@ -4,7 +4,25 @@
   {{ end }}
   <script>
     const isDarkMode = document.documentElement.style.colorScheme == 'dark';
-    mermaid.initialize({ startOnLoad: true, theme: isDarkMode ? 'dark' : 'default' });
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: isDarkMode ? 'dark' : 'default',
+      themeVariables: {
+        packet: {
+          byteFontSize: '1.4em',
+          labelFontSize: '1.6em',
+          titleFontSize: '1.8em',
+          startByteColor: isDarkMode ? 'white' : 'black',
+          endByteColor: isDarkMode ? 'white' : 'black',
+          titleColor: isDarkMode ? 'white' : 'black',
+        }
+      },
+      packet: {
+        rowHeight: 60,
+        paddingX: 10,
+        paddingY: 20,
+      }
+    });
   </script>
 {{ end }}
 

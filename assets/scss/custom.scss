@@ -1,5 +1,10 @@
 @import "variables";
 
+@mixin themeProperty($property, $bright-value, $dark-value) {
+    #{$property}: $bright-value !important;
+    body.colorscheme-dark & { #{$property}: $dark-value !important; }
+}
+
 .post {
     p {
         /* undo "white-space: pre-wrap" in _base.scss */
@@ -25,28 +30,27 @@
         font-size: 1rem;
     }
 
+    .mermaid > svg {
+        font-size: 1rem;
+    }
 
     svg {
         /* Define classes for SVGs that adapt to the color scheme */
 
         .stroke-fg {
-            stroke: $fg-color !important;
-            body.colorscheme-dark & { stroke: $fg-color-dark !important; }
+            @include themeProperty(stroke, $fg-color, $fg-color-dark);
         }
 
         .fill-fg {
-            fill: $fg-color !important;
-            body.colorscheme-dark & { fill: $fg-color-dark !important; }
+            @include themeProperty(fill, $fg-color, $fg-color-dark);
         }
 
         .stroke-bg {
-            stroke: $bg-color !important;
-            body.colorscheme-dark & { stroke: $bg-color-dark !important; }
+            @include themeProperty(stroke, $bg-color, $bg-color-dark);
         }
 
         .fill-bg {
-            fill: $bg-color !important;
-            body.colorscheme-dark & { fill: $bg-color-dark !important; }
+            @include themeProperty(fill, $bg-color, $bg-color-dark);
         }
     }
 
@@ -75,13 +79,8 @@
 
     table thead th {
         /* style table headers */
-        background-color: $alt-bg-color;
-        color: $alt-fg-color;
-
-        body.colorscheme-dark & {
-            background-color: $alt-bg-color-dark;
-            color: $alt-fg-color-dark;
-        }
+        @include themeProperty(background-color, $alt-bg-color, $alt-bg-color-dark);
+        @include themeProperty(color, $alt-fg-color, $alt-fg-color-dark);
     }
 
     .footnotes {
