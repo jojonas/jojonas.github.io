@@ -119,7 +119,7 @@ flowchart LR
 According to the motto "implement before you think", I wrote [a
 script](https://gist.github.com/jojonas/14ec3507632ac90f26f41b5d47a3b1a8) to
 implement the DES encryption, hoping it would yield the raw value as stored in
-the SAM. The RID used for the encryption (`0x3e8`) can also be found in
+the SAM. The RID used for the encryption (here: `0x3e8`) can also be found in
 `nltest`'s output.
 
 ```shell-session
