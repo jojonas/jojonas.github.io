@@ -1,25 +1,59 @@
 {{ if .Store.Get "hasMermaid" }}
-  {{ with resources.GetRemote "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" }}
+  {{ with resources.GetRemote "https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js" }}
     <script src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
   {{ end }}
   <script>
-    const isDarkMode = document.documentElement.style.colorScheme == 'dark';
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: isDarkMode ? 'dark' : 'default',
-      themeVariables: {
+    (function() {
+      const isDarkMode = document.documentElement.style.colorScheme == 'dark';
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: isDarkMode ? 'dark' : 'default',
+        themeVariables: {
+          packet: {
+            byteFontSize: '1.2em',
+            labelFontSize: '1.4em',
+            titleFontSize: '1.7em',
+          }
+        },
         packet: {
-          byteFontSize: '1.4em',
-          labelFontSize: '1.6em',
-          titleFontSize: '1.8em',
+          rowHeight: 50,
+          paddingX: 15,
+          paddingY: 15,
         }
-      },
-      packet: {
-        rowHeight: 60,
-        paddingX: 10,
-        paddingY: 20,
+      });
+    }());
+  </script>
+{{ end }}
+
+{{ if .Store.Get "hasWordcloud" }}
+  {{ with resources.GetRemote "https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js" }}
+    <script src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
+  {{ end }}
+  <script>
+    (function() {
+      if (!WordCloud.isSupported) {
+        return;
       }
-    });
+      
+      const isDarkMode = document.documentElement.style.colorScheme == 'dark';
+
+      document.querySelectorAll("script.wordcloud").forEach(element => {
+        const canvas = document.createElement("div");
+        canvas.classList.add("wordcloud");
+        element.parentNode.insertBefore(canvas, element.nextSibling);
+
+        const words = JSON.parse(element.textContent);
+        const list = words.map(value => [value, 1]);
+        WordCloud(canvas, { 
+          list: list, 
+          //minSize: 20,
+          color: null,
+          fontFamily: "sans-serif",
+          weightFactor: 30,
+          shape: "square",
+        } );
+      });
+    }());
   </script>
 {{ end }}
 
