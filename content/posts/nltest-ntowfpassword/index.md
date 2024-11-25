@@ -117,8 +117,10 @@ flowchart LR
 ```
 
 According to the motto "implement before you think", I wrote [a
-script](script.py) to implement the DES encryption, hoping it would yield the
-raw value as stored in the SAM:
+script](https://gist.github.com/jojonas/14ec3507632ac90f26f41b5d47a3b1a8) to
+implement the DES encryption, hoping it would yield the raw value as stored in
+the SAM. The RID used for the encryption (`0x3e8`) can also be found in
+`nltest`'s output.
 
 ```shell-session
 $ python3 script.py -r 0x3e8 '5192b7a2 93e9a4c4 5b756fd6 31d3cb21'

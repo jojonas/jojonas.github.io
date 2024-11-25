@@ -1,3 +1,5 @@
+# see: https://www.jonaslieb.de/blog/nltest-ntowfpassword/
+
 import click
 from Cryptodome.Cipher import DES
 
