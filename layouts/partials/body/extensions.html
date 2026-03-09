@@ -10,6 +10,6 @@
 
 {{ if not hugo.IsServer }}
   {{ with resources.GetRemote "https://gc.zgo.at/count.js" }}
-    <script data-goatcounter="https://jojonas.goatcounter.com/count" async src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
+    <script data-goatcounter="https://stats.jonaslieb.de/count" async src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
   {{ end }}
 {{ end }}

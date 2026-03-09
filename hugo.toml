@@ -64,7 +64,7 @@ objectsrc = ["'none'"]
 stylesrc = ["'self'", "'unsafe-inline'"]
 scriptsrc = ["'self'", "'unsafe-inline'"]
 prefetchsrc = ["'self'"]
-connectsrc = ["'self'", "https://jojonas.goatcounter.com/count"]
+connectsrc = ["'self'", "stats.jonaslieb.de"]
 
 [markup.goldmark.renderHooks.image]
 enableDefault = true
