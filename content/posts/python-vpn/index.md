@@ -49,20 +49,13 @@ As described earlier, the packets need to be wrapped and optionally encrypted. M
 
 The following diagram shows the encapsulation format:
 
-<!-- python3 protocol "Magic (4 bytes):32,Length (2 bytes):16,Reserved (2 bytes):16,Ciphertext (variable length):64"
- -->
-```goat {width=700}
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                        Magic (4 bytes)                        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|        Length (2 bytes)       |       Reserved (2 bytes)      |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                                                               |
-+                  Ciphertext (variable length)                 +
-|                                                               |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+```mermaid
+packet-beta
+0-31: "Magic (4 bytes)"
+32-47: "Length (2 bytes)"
+48-63: "Reserved (2 bytes)"
+64-95: "Ciphertext (variable length)"
 ```
 
 
