@@ -5,7 +5,7 @@ tags: ["Wireshark", "Reverse Engineering", "Networking"]
 series: ["Wireshark Dissector Guides"]
 ---
 
-Another way to step up your Wireshark game is to enhance Lua dissectors with features implemented in C/C++. Lua has a wonderful [C API](https://www.lua.org/pil/24.html) that allows to seamlessly bring the power of C libraries to Lua code. I found this especially helpful when working with cryptography, as Wireshark does not provide any built-in cryptographic extensions to be used in dissectors. With this post I would therefore like to explain how to wrap C libraries for using them in Lua and how to use pre-packaged Lua libraries from [LuaRocks](https://luarocks.org/).
+Another way to step up your Wireshark game is to enhance Lua dissectors with features implemented in C/C++. Lua has a wonderful [C API](https://www.lua.org/pil/24.html) that allows to seamlessly leverage C libraries within Lua code. I found this especially helpful when working with cryptography or compression, as Wireshark does not provide such capabilities in its Lua API. With this post I want to explain how to wrap C libraries for using them in Lua and how to use pre-packaged Lua libraries from [LuaRocks](https://luarocks.org/).
 
 <!--more-->
 
@@ -13,9 +13,9 @@ Another way to step up your Wireshark game is to enhance Lua dissectors with fea
 
 The first step when extending Lua is figuring out the Lua version used by Wireshark. You can find it through the dialogue _Help_ > _About Wireshark_, in the paragraph "Compiled with...":
 
-![About Wireshark dialogue indication compilation with Lua 5.2.4 support](wireshark-lua-version.png "50rem")
+![About Wireshark dialogue indication compilation with Lua 5.2.4 support](wireshark-lua-version.png "60rem")
 
-In my case this was Lua version 5.2.4, and thus I'll be using that version in the examples. Make sure to adapt the commands and documentation for your version of Lua.
+In my case this was Lua version 5.2.4, and thus I'll be using that version in the following examples. Make sure to adapt the commands and documentation for your version of Lua.
 
 Native modules come in the form of shared libraries (`.so` files on Linux, `.dll` files on Windows). However, you will not be able to just call arbitrary shared libraries as they need to follow a few rules mandated by the Lua C API. That's why you will usually have to wrap existing libraries so that they can be used with Lua. In the first section of this post, I want to show you how you can compile and use such a wrapper yourself, then in the second part I will show how to install and use wrappers that other people published as packages in the [LuaRocks](https://luarocks.org/) repository. If that's all you need, feel free to skip ahead.
 
