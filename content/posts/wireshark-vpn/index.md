@@ -3,7 +3,7 @@ date = 2024-09-09T21:34:49+02:00
 title = "Analyzing Encapsulation with Custom Wireshark Dissectors"
 +++
 
-In the [previous post](/blog/python-vpn/), I presented a ~crappy~ simple VPN service in Python. In this post I'll show how to modify the packet sniffer [Wireshark](https://www.wireshark.org/) to support the VPN. The post is again intended as a template, this time for the creation of Wireshark dissectors, with a focus on tunneling protocols.
+In the [previous post](/blog/python-vpn/), I presented a ~crappy~ simple VPN service implemented in Python. In this post I'll show how to modify the packet sniffer [Wireshark](https://www.wireshark.org/) to support the VPN. The post is again intended as a template, this time for the creation of Wireshark dissectors, with a focus on tunneling protocols.
 
 <!--more-->
 
