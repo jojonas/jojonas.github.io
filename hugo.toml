@@ -3,6 +3,7 @@ title = "Jonas Lieb"
 theme = "hugo-coder"
 defaultContentLanguage = "en"
 paginate = 10
+disableKinds = ["taxonomy"]
 
 [params]
 author = "Jonas Lieb"
@@ -45,7 +46,7 @@ type = "application/rss+xml"
 [[menu.main]]
 name = "Blog"
 weight = 2
-url = "/posts"
+url = "/blog"
 
 #[[menu.main]]
 #name = "Projects"
@@ -57,10 +58,10 @@ childsrc = ["'self'"]
 fontsrc = ["'self'"]
 formaction = ["'self'"]
 framesrc = ["'self'"]
-imgsrc = ["'self'", "https://www.gravatar.com/"]
+imgsrc = ["'self'"]
 objectsrc = ["'none'"]
-stylesrc = ["'self'", "'unsafe-inline'", "https://github.githubassets.com"]
-scriptsrc = ["'self'", "'unsafe-inline'", "https://gist.github.com"]
+stylesrc = ["'self'", "'unsafe-inline'"]
+scriptsrc = ["'self'", "'unsafe-inline'"]
 prefetchsrc = ["'self'"]
 connectsrc = ["'self'"]
 
@@ -73,3 +74,10 @@ unsafe = true
 [markup.highlight]
 noClasses = false
 theme = nan
+
+[permalinks]
+  [permalinks.page]
+    posts = '/blog/:slugorfilename/'
+  [permalinks.section]
+    posts = '/blog/'
+
