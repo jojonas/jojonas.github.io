@@ -1,5 +1,6 @@
-{{ $image := .Page.Resources.GetMatch (printf "%s" (.Destination | safeURL)) }}
-<a href="{{ .Destination | safeURL }}"><img src="{{ .Destination | safeURL }}"
+{{ $image := .Page.Resources.GetMatch (printf "%s" (.Destination | safeURL)) -}}
+{{- $preview := $image.Resize (printf "%dx%d webp" $image.Width $image.Height) -}}
+<a href="{{ .Destination | safeURL }}"><img src="{{ $preview.Permalink }}"
   {{- with $image }} width="{{ $image.Width }}" height="{{ $image.Height }}" {{ end -}}
   {{- with .Text }} alt="{{ . }}"{{ end -}}
   {{- with .Title}} style="width: {{ . }};"{{ end -}}
