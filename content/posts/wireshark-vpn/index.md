@@ -3,7 +3,7 @@ date = 2024-09-09T21:34:49+02:00
 title = "Analyzing Encapsulation with Custom Wireshark Dissectors"
 +++
 
-In the [previous post](/posts/crapvpn/), I presented a ~crappy~ simple VPN service in Python. In this post I'll show how to modify the packet sniffer [Wireshark](https://www.wireshark.org/) to support the VPN. The post is again intended as a template, this time for the creation of Wireshark dissectors, with a focus on tunneling protocols.
+In the [previous post](/blog/python-vpn/), I presented a ~crappy~ simple VPN service in Python. In this post I'll show how to modify the packet sniffer [Wireshark](https://www.wireshark.org/) to support the VPN. The post is again intended as a template, this time for the creation of Wireshark dissectors, with a focus on tunneling protocols.
 
 <!--more-->
 
@@ -11,7 +11,7 @@ In the [previous post](/posts/crapvpn/), I presented a ~crappy~ simple VPN servi
 
 ## Recap: The Example VPN
 
-As a recap, the VPN described in the [previous post](/posts/crapvpn/) uses a TUN device to encapsulate IP packets in UDP packets, with each UDP packet having the following structure:
+As a recap, the VPN described in the [previous post](/blog/python-vpn/) uses a TUN device to encapsulate IP packets in UDP packets, with each UDP packet having the following structure:
 
 ```goat {width=700}
  0                   1                   2                   3
