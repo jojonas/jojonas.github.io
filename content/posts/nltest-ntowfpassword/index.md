@@ -23,7 +23,7 @@ another option for dumping the
 
 I then used [SharpSAMDump](https://github.com/jojonas/SharpSAMDump/) to dump the SAM the "conventional way" which yielded[^secret]:
 
-[^secret]: To save you some computing-time: the password for `User` is `secret`.
+[^secret]: To save you some computing time: the password for `User` is `secret`.
 
 ```cmd {hl_lines=6}
 C:\Windows\System32>C:\Users\user\Desktop\SharpSAMDump.exe
