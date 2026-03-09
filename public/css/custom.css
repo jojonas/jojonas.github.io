@@ -1,0 +1,14 @@
+/* used in combination with layouts/_default/_markup/render-image.html */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+img {
+    /* center images */
+    display: block;
+    margin: auto;
+
+    /* add border */
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
