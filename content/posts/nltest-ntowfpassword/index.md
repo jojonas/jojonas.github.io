@@ -131,10 +131,9 @@ Neat, it's the first bytes of the raw SAM attribute "Encrypted NT Hash":
 
 ![Excerpt of the SAM entry](images/sam_snippet.png)
 
-But unfortunately, the decryption only yields the first 16 bytes - an 8-byte
-header and only eight bytes of the "ciphertext"... And even worse: The eight
-ciphertext bytes correspond to the first half of the IV used for AES-CBC
-:frowning: 
+But unfortunately, it's really only the first 16 bytes - an 8-byte header and
+only eight bytes of the ciphertext... And even worse: The eight "ciphertext"
+bytes correspond to the first half of the IV used for AES-CBC... :frowning: 
 
 As there is no way of forcing more bytes out of `nltest`, I give up at this
 point.
