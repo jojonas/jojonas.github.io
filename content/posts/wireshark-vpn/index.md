@@ -29,7 +29,7 @@ As a recap, the VPN described in the [previous post](/blog/python-vpn/) uses a T
 
 The VPN uses XOR for encryption, which means that every byte of plaintext is XORed with a key byte. The key repeats to accommodate plaintexts that are longer than the key itself:
 
-{{< code language="python" source="../crapvpn/crapvpn.py" id="xor" >}}
+{{< code language="python" source="../python-vpn/crapvpn.py" id="xor" >}}
 
 {{< notice example >}}
 If you want to follow along but do want to set up/run the VPN client, you can find the PCAP file used for this post [here](crapvpn_key0011223344.pcapng). The XOR key used for encryption is `00 11 22 33 44`.
