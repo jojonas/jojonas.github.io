@@ -109,7 +109,7 @@ I would find another leak for the key):
 ```mermaid
 flowchart LR
     Owf([NtOwfPassword]) --> DES["DES encrypt<br>(with RID)"]
-    DES --> SAM([Values in SAM])
+    DES --> SAM([Value in SAM])
     SAM --> AES["AES decrypt<br>(with separate key)"]
     AES --> DES2["DES decrypt<br>(with RID)"]
     DES2 --> Hash([NT Hash])
