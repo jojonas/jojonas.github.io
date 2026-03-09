@@ -2,6 +2,7 @@
 title = "The State of Reverse Engineering Arduino Binaries with Ghidra"
 date = 2024-04-07
 publishdate = 2024-04-08
+keywords = ["arduino", "ghidra", "reverse engineering", "atmega328p"]
 draft = false
 +++
 
@@ -13,12 +14,12 @@ ATmega328P (used by the Arduino Uno), the post will also outline the state of
 the current (April 2024) support for this architecture and demonstrate its
 limits. 
 
+<!--more-->
+
 _Disclaimer: At daytime, I work in offensive IT security, which requires some
 level of reverse engineering, however mostly of high-level binaries (Linux and
 Windows). I also have some experience with microcontrollers, but I am by no means
 a well-versed embedded systems (reverse) engineer._
-
-<!--more-->
 
 ## Test Setup
 
