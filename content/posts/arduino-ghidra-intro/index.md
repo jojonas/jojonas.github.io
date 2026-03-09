@@ -453,7 +453,7 @@ void main() {
 In this case, we've come close enough to the original code to understand what
 it's doing.
 
-### I Cheated
+### Cross-Referencing an ELF
 
 I am sorry to reveal now that I cheated: I figured out most of the presented
 information by cross-referencing my dumped binary with an ELF file containing
