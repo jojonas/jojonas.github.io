@@ -9,5 +9,7 @@
 {{ end }}
 
 {{ if not hugo.IsServer }}
-  <script data-goatcounter="https://jojonas.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  {{ with resources.GetRemote "https://gc.zgo.at/count.js" }}
+    <script data-goatcounter="https://jojonas.goatcounter.com/count" async src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
+  {{ end }}
 {{ end }}

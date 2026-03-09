@@ -62,7 +62,7 @@ framesrc = ["'self'"]
 imgsrc = ["'self'"]
 objectsrc = ["'none'"]
 stylesrc = ["'self'", "'unsafe-inline'"]
-scriptsrc = ["'self'", "'unsafe-inline'", "https://gc.zgo.at"]
+scriptsrc = ["'self'", "'unsafe-inline'"]
 prefetchsrc = ["'self'"]
 connectsrc = ["'self'", "https://jojonas.goatcounter.com/count"]
 
