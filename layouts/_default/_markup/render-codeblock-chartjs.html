@@ -1,0 +1,2 @@
+<canvas data-chartjs="{{- .Inner | transform.Unmarshal | transform.Remarshal "json" -}}"></canvas>
+{{- .Page.Store.Set "hasChartJs" true -}}

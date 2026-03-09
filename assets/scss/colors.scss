@@ -1,0 +1,51 @@
+@import "variables";
+
+
+@mixin variable($property, $value) {
+    --#{$property}: #{$value};
+}
+
+$colors: (
+    color-black: #FFBB00
+);
+
+:root {
+    @include variable("font-family", $font-family);
+    @include variable("code-font-family", $code-font-family);
+
+    @include variable("bg-color", $bg-color);
+    @include variable("fg-color", $fg-color);
+    @include variable("alt-bg-color", $alt-bg-color);
+    @include variable("alt-fg-color", $alt-fg-color);
+    @include variable("darker-alt-bg-color", $darker-alt-bg-color);
+    @include variable("link-color", $link-color);
+
+    @include variable("bg-color-dark", $bg-color-dark);
+    @include variable("fg-color-dark", $fg-color-dark);
+    @include variable("alt-bg-color-dark", $alt-bg-color-dark);
+    @include variable("alt-fg-color-dark", $alt-fg-color-dark);
+    @include variable("lighter-alt-bg-color-dark", $lighter-alt-bg-color-dark);
+    @include variable("link-color-dark", $link-color-dark);
+
+    @include variable("fg-color-notice-note-icon", $fg-color-notice-note-icon);
+    @include variable("bg-color-notice-note-title", $bg-color-notice-note-title);
+    @include variable("bg-color-notice-note-content", $bg-color-notice-note-content);
+    @include variable("fg-color-notice-tip-icon", $fg-color-notice-tip-icon);
+    @include variable("bg-color-notice-tip-title", $bg-color-notice-tip-title);
+    @include variable("bg-color-notice-tip-content", $bg-color-notice-tip-content);
+    @include variable("fg-color-notice-example-icon", $fg-color-notice-example-icon);
+    @include variable("bg-color-notice-example-title", $bg-color-notice-example-title);
+    @include variable("bg-color-notice-example-content", $bg-color-notice-example-content);
+    @include variable("fg-color-notice-question-icon", $fg-color-notice-question-icon);
+    @include variable("bg-color-notice-question-title", $bg-color-notice-question-title);
+    @include variable("bg-color-notice-question-content", $bg-color-notice-question-content);
+    @include variable("fg-color-notice-info-icon", $fg-color-notice-info-icon);
+    @include variable("bg-color-notice-info-title", $bg-color-notice-info-title);
+    @include variable("bg-color-notice-info-content", $bg-color-notice-info-content);
+    @include variable("fg-color-notice-warning-icon", $fg-color-notice-warning-icon);
+    @include variable("bg-color-notice-warning-title", $bg-color-notice-warning-title);
+    @include variable("bg-color-notice-warning-content", $bg-color-notice-warning-content);
+    @include variable("fg-color-notice-error-icon", $fg-color-notice-error-icon);
+    @include variable("bg-color-notice-error-title", $bg-color-notice-error-title);
+    @include variable("bg-color-notice-error-content", $bg-color-notice-error-content);
+}

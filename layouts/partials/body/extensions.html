@@ -1,64 +1,123 @@
+<script>
+  const getColorScheme = () => document.documentElement.style['color-scheme'];
+  const onThemeChanged = cb => document.addEventListener('themeChanged', cb);
+</script>
+
 {{ if .Store.Get "hasMermaid" }}
-  {{ with resources.GetRemote "https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js" }}
-    <script src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
-  {{ end }}
-  <script>
-    (function() {
-      const isDarkMode = document.documentElement.style.colorScheme == 'dark';
-      mermaid.initialize({
-        startOnLoad: true,
-        theme: isDarkMode ? 'dark' : 'default',
-        themeVariables: {
-          packet: {
-            byteFontSize: '1.2em',
-            labelFontSize: '1.4em',
-            titleFontSize: '1.7em',
-          }
-        },
+{{ with resources.GetRemote "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.12.0/mermaid.min.js" }}
+<script src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
+{{ end }}
+<script>
+  (function () {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: getColorScheme() == 'dark' ? 'dark' : 'default',
+      themeVariables: {
         packet: {
-          rowHeight: 50,
-          paddingX: 15,
-          paddingY: 15,
+          byteFontSize: '1.2em',
+          labelFontSize: '1.4em',
+          titleFontSize: '1.7em',
         }
-      });
-    }());
-  </script>
+      },
+      packet: {
+        rowHeight: 50,
+        paddingX: 15,
+        paddingY: 15,
+      }
+    });
+  }());
+</script>
 {{ end }}
 
 {{ if .Store.Get "hasWordcloud" }}
-  {{ with resources.GetRemote "https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js" }}
-    <script src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
-  {{ end }}
-  <script>
-    (function() {
-      if (!WordCloud.isSupported) {
-        return;
-      }
-      
-      const isDarkMode = document.documentElement.style.colorScheme == 'dark';
+{{ with resources.GetRemote "https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.3/wordcloud2.min.js" }}
+<script src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
+{{ end }}
+<script>
+  (function () {
+    if (!WordCloud.isSupported) {
+      return;
+    }
 
-      document.querySelectorAll("script.wordcloud").forEach(element => {
-        const canvas = document.createElement("div");
-        canvas.classList.add("wordcloud");
-        element.parentNode.insertBefore(canvas, element.nextSibling);
+    const isDarkMode = getColorScheme() == 'dark';
 
-        const words = JSON.parse(element.textContent);
-        const list = words.map(value => [value, 1]);
-        WordCloud(canvas, { 
-          list: list, 
-          //minSize: 20,
-          color: null,
-          fontFamily: "sans-serif",
-          weightFactor: 30,
-          shape: "square",
-        } );
+    const canvases = document.body.querySelectorAll("canvas[data-wordcloud]");
+    canvases.forEach(canvas => {
+      const words = JSON.parse(canvas.dataset.wordcloud);
+      const list = words.map(value => [value, 1]);
+
+      canvas.style.width = '100%';
+      canvas.width = canvas.offsetWidth;
+
+      WordCloud(canvas, {
+        list: list,
+        // minSize: 20,
+        color: isDarkMode ? '#dadada' : '#212121',
+        backgroundColor: isDarkMode ? '#212121' : '#fafafa',
+        fontFamily: "sans-serif",
+        weightFactor: 30,
+        shape: "square",
       });
-    }());
-  </script>
+    });
+  }());
+</script>
+{{ end }}
+
+{{ if .Store.Get "hasChartJs" }}
+{{ with resources.GetRemote "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" }}
+<script src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
+{{ end }}
+<script>
+  (function () {
+    const canvases = document.body.querySelectorAll("canvas[data-chartjs]");
+
+    const colors = {
+      dark: {
+        borderColor: '#333',
+        color: '#fff',
+      },
+      default: {
+        borderColor: '#ddd',
+        color: '#000',
+      }
+    }
+
+    Chart.defaults.borderColor = () => colors[getColorScheme() == 'dark' ? 'dark' : 'default'].borderColor;
+    Chart.defaults.color = () => colors[getColorScheme() == 'dark' ? 'dark' : 'default'].color;
+
+    function updateAllCharts() {
+      canvases.forEach(canvas => {
+        const chart = Chart.getChart(canvas);
+        if (chart) {
+          chart.update();
+        }
+      });
+    }
+    onThemeChanged(updateAllCharts);
+
+    canvases.forEach(canvas => {
+      if (!canvas.dataset.chartjs) {
+        return -1;
+      }
+
+      let configuration = JSON.parse(canvas.dataset.chartjs);
+
+      configuration.options.animation = false;
+      configuration.options.plugins = Object.assign({}, configuration.options.plugins, {
+        colors: {
+          forceOverride: true
+        }
+      });
+
+      new Chart(canvas, configuration);
+    });
+  })();
+</script>
 {{ end }}
 
 {{ if not hugo.IsServer }}
-  {{ with resources.GetRemote "https://gc.zgo.at/count.js" }}
-    <script data-goatcounter="https://stats.jonaslieb.de/count" async src="{{ .RelPermalink }}" integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
-  {{ end }}
+{{ with resources.GetRemote "https://gc.zgo.at/count.js" }}
+<script data-goatcounter="https://stats.jonaslieb.de/count" async src="{{ .RelPermalink }}"
+  integrity="{{ (. | fingerprint).Data.Integrity }}" crossorigin="anonymous"></script>
+{{ end }}
 {{ end }}

@@ -15,7 +15,7 @@ rtl = false
 #gravatar = "lieb.jonas@gmail.com"
 description =  "Jonas' personal website"
 info = ["Security Professional"]
-customSCSS = ["scss/custom.scss"]
+customSCSS = ["scss/custom.scss", "scss/colors.scss"]
 #customCSS = ["css/lightbox.css"]
 #customJS = ["js/lightbox.js"]
 
@@ -86,3 +86,9 @@ theme = nan
 [taxonomies]
   tag = 'tags'
   series = 'series'
+
+[module]
+[[module.mounts]]
+  source = 'content'
+  target = 'content'
+  excludeFiles = ['posts/**/prepare-*.py']

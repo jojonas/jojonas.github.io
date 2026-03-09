@@ -1,2 +1,2 @@
-<script class="wordcloud" type="application/json">{{ split .Inner "\n" | jsonify | safeJS }}</script>
-{{ .Page.Store.Set "hasWordcloud" true }}  
+<canvas data-wordcloud="{{- split .Inner "\n" | jsonify -}}"></canvas>
+{{- .Page.Store.Set "hasWordcloud" true -}}
