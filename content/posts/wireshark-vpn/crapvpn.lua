@@ -1,12 +1,13 @@
 do
     local crapvpn_proto = Proto("CrapVPN_UDP", "CrapVPN Protocol (UDP)")
 
-    local ip_dissector = Dissector.get("ip")
+    local ethertype_dissector_table = DissectorTable.get("ethertype")
 
     local fields = {
         magic_bytes = ProtoField.string("crapvpn.magic", "Magic Bytes"),
         ciphertext_length = ProtoField.uint16("crapvpn.ciphertext_length", "Ciphertext Length", base.DEC),
-        ciphertext = ProtoField.bytes("crapvpn.ciphertext", "Ciphertext")
+        ciphertext = ProtoField.bytes("crapvpn.ciphertext", "Ciphertext"),
+        ethertype = ProtoField.uint16("crapvpn.ethertype", "Ether Type", base.HEX)
     }
     crapvpn_proto.fields = fields
 
@@ -51,15 +52,20 @@ do
         local ciphertext_length_buffer = buffer(4, 2)
         subtree:add(fields.ciphertext_length, ciphertext_length_buffer)
 
+
+        local ethertype_buffer = buffer(6, 2)
+        subtree:add(fields.ethertype, ethertype_buffer)
+
         local ciphertext_length = ciphertext_length_buffer:uint()
-        local ciphertext_buffer = buffer(6, ciphertext_length)
+        local ciphertext_buffer = buffer(8, ciphertext_length)
         subtree:add(fields.ciphertext, ciphertext_buffer)
 
         local ciphertext_bytes = ciphertext_buffer:bytes()
         local plaintext_bytes = xor_decrypt(ciphertext_bytes)
         if plaintext_bytes then
             local plaintext_tvb = plaintext_bytes:tvb("Plaintext")
-            pcall(Dissector.call, ip_dissector, plaintext_tvb, pinfo, tree)
+            local ethertype = ethertype_buffer:uint()
+            ethertype_dissector_table:try(ethertype, plaintext_tvb, pinfo, tree)
         end
     end
 
