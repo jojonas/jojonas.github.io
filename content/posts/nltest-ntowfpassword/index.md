@@ -5,9 +5,10 @@ draft: false
 tags: ["Red-Teaming", "Windows", "Reverse Engineering"]
 ---
 
-I recently fiddled around with Window's built-in command `nltest` and noticed
-that `nltest /user:<username>`, when executed as an Administrator, yields some
-interesting information about the requested user:
+I recently fiddled around with Window's built-in command
+[`nltest`](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc731935(v=ws.11))
+and noticed that `nltest /user:<username>`, when executed as an Administrator,
+yields some interesting information about the requested user:
 
 ![Output of nltest](images/nltest.png)
 
