@@ -91,7 +91,7 @@ Host B:
 $ sudo ./crapvpn.py -k 1234ABCD -p <Host_A_IP> 192.168.2.2 192.168.2.1
 ```
 
-Then you should be able to connect to host `192.168.2.2` from `192.168.2.1` and vice versa, for example by sending an ICMP echo request:
+Then you should be able to send data from the host `192.168.2.1` to host `192.168.2.2` and vice versa, for example by sending an ICMP echo request:
 
 ```shell-session
 $ ping -c 3 192.168.2.2
