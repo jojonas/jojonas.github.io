@@ -127,9 +127,14 @@ $ python3 script.py -r 0x3e8 '5192b7a2 93e9a4c4 5b756fd6 31d3cb21'
 03 00 02 00 10 00 00 00 DB 70 2B 79 89 98 DE B6
 ```
 
-That's neat, but the output contains an 8-byte header and only eight bytes of
-the "ciphertext"... And even worse: The eight ciphertext bytes correspond to the
-first half of the IV used for AES-CBC :frowning:
+Neat, it's the first bytes of the raw SAM attribute "Encrypted NT Hash":
+
+![Excerpt of the SAM entry](images/sam_snippet.png)
+
+But unfortunately, the decryption only yields the first 16 bytes - an 8-byte
+header and only eight bytes of the "ciphertext"... And even worse: The eight
+ciphertext bytes correspond to the first half of the IV used for AES-CBC
+:frowning: 
 
 As there is no way of forcing more bytes out of `nltest`, I give up at this
 point.
