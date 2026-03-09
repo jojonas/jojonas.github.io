@@ -31,7 +31,12 @@
     }
 
     .mermaid > svg {
-        font-size: 1rem;
+        .packetByte, .packetLabel, .packetTitle {
+            @include themeProperty(fill, $alt-fg-color, $alt-fg-color-dark);
+        }
+        .packetBlock {
+            @include themeProperty(fill, $alt-bg-color, $alt-bg-color-dark);
+        }
     }
 
     svg {
