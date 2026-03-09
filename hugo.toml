@@ -4,6 +4,7 @@ theme = "hugo-coder"
 defaultContentLanguage = "en"
 disableKinds = ["taxonomy"]
 enableRobotsTXT = true
+enableEmoji = true
 
 [params]
 author = "Jonas Lieb"
@@ -15,8 +16,8 @@ rtl = false
 description =  "Jonas' personal website"
 info = ["Security Professional"]
 customSCSS = ["scss/custom.scss"]
-customCSS = ["css/lightbox.css"]
-customJS = ["js/lightbox.js"]
+#customCSS = ["css/lightbox.css"]
+#customJS = ["js/lightbox.js"]
 
   
 [[params.social]]

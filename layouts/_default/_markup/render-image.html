@@ -1,5 +1,7 @@
 {{ $image := .PageInner.Resources.Get .Destination -}}
-<a href="{{ $image.RelPermalink }}">
+<a href="{{ $image.RelPermalink }}"
+  {{- with .Text }} title="{{ . }}"{{ end -}}
+>
 {{- if eq $image.MediaType.SubType "svg" -}}
   {{- $image.Content | replaceRE `^<\?xml[^>]+\?>` "" | safeHTML -}}
 {{- else -}}

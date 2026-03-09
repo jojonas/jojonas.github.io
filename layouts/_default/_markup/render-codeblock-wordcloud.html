@@ -1,0 +1,2 @@
+<script class="wordcloud" type="application/json">{{ split .Inner "\n" | jsonify | safeJS }}</script>
+{{ .Page.Store.Set "hasWordcloud" true }}  

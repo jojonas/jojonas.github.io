@@ -1,7 +1,7 @@
 ---
 title: 'The Curious Case of nltest and LmOwfPassword/NtOwfPassword'
 date: 2024-11-25T17:47:50+01:00
-draft: true
+draft: false
 tags: ["Red-Teaming", "Windows", "Reverse Engineering"]
 ---
 
