@@ -129,6 +129,9 @@ That's neat, but the output contains an 8-byte header and only eight bytes of
 the "ciphertext"... And even worse: The eight ciphertext bytes correspond to the
 first half of the IV used for AES-CBC :frowning:
 
+As there is no way of forcing more bytes out of `nltest`, I give up at this
+point.
+
 ## Conclusion
 
 I am glad to have solved the mystery of `nltest /user:`'s output, specifically
