@@ -2,10 +2,10 @@
 
 {{- $title := "" -}}
 
-{{- with resources.GetRemote (printf "https://datatracker.ietf.org/api/v1/doc/document/rfc%d/" $id) -}}
+{{- with try (resources.GetRemote (printf "https://datatracker.ietf.org/api/v1/doc/document/rfc%d/" $id)) -}}
     {{- with .Err -}}
         {{- errorf "%s" . -}}
-    {{- else -}}
+    {{- else with .Value -}}
         {{- $metadata := . | transform.Unmarshal -}}
         {{- $title = printf "RFC %d (\"%s\")" $id $metadata.title -}}
     {{- end -}}

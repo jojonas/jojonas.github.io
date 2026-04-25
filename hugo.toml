@@ -68,7 +68,7 @@ prefetchsrc = ["'self'"]
 connectsrc = ["'self'", "stats.jonaslieb.de"]
 
 [markup.goldmark.renderHooks.image]
-enableDefault = true
+useEmbedded = "fallback"
 
 [markup.goldmark.renderer]
 unsafe = true
@@ -79,7 +79,7 @@ theme = nan
 
 [permalinks]
   [permalinks.page]
-    posts = '/blog/:slugorfilename/'
+    posts = '/blog/:slugorcontentbasename/'
   [permalinks.section]
     posts = '/blog/'
 
@@ -91,4 +91,4 @@ theme = nan
 [[module.mounts]]
   source = 'content'
   target = 'content'
-  excludeFiles = ['posts/**/prepare-*.py']
+  files = ['! posts/**/prepare-*.py']

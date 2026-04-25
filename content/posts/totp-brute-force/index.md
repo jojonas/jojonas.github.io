@@ -2,7 +2,7 @@
 title: 'TOTP Brute-Force Statistics'
 date: 2026-03-09T21:10:00+01:00
 draft: false
-tags: ["Penetration Testing", "Mathematics", "Statistics"]
+tags: ["Pentesting", "Mathematics", "Statistics"]
 ---
 
 There is this tiny statistics problem in IT security that almost nobody talks

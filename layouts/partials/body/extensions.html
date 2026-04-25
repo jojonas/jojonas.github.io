@@ -9,22 +9,29 @@
 {{ end }}
 <script>
   (function () {
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: getColorScheme() == 'dark' ? 'dark' : 'default',
-      themeVariables: {
+    function initializeMermaid() {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: getColorScheme() == 'dark' ? 'dark' : 'default',
+        themeVariables: {
+          packet: {
+            byteFontSize: '1.2em',
+            labelFontSize: '1.4em',
+            titleFontSize: '1.7em',
+          }
+        },
         packet: {
-          byteFontSize: '1.2em',
-          labelFontSize: '1.4em',
-          titleFontSize: '1.7em',
+          rowHeight: 50,
+          paddingX: 15,
+          paddingY: 15,
         }
-      },
-      packet: {
-        rowHeight: 50,
-        paddingX: 15,
-        paddingY: 15,
-      }
-    });
+      });
+    }
+
+    initializeMermaid();
+
+    // Doesn't work yet, see https://github.com/mermaid-js/mermaid/issues/1945
+    // onThemeChanged(initializeMermaid);
   }());
 </script>
 {{ end }}

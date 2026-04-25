@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.0" width="256" height="256" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+ <path class="stroke-fg" style="stroke:#000;stroke-width:2;fill:none" d="M32,32v64h64v-64h64h64v64h-64v64h64v64h-64h-64v-64h-64v64v64h64v64h-64v64v64h64v-64h64v64h64v-64v-64h-64v-64h64h64h64v64h-64v64v64h64v-64h64v64h64v-64v-64h-64v-64h64v-64v-64h-64v64h-64h-64v-64h64v-64h-64v-64h64h64v64h64v-64"/>
+ <path style="stroke:#00f;stroke-width:4;fill:none" d="M64,64h128v128h-128v128v128h128v-128h128v128h128v-128v-128h-128v-128h128"/>
+ <path style="stroke:#f00;stroke-width:6;fill:none" d="M128,128v256h256v-256"/>
+</svg>

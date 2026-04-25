@@ -2,7 +2,10 @@
 
 @mixin themeProperty($property, $bright-value, $dark-value) {
     #{$property}: $bright-value !important;
-    body.colorscheme-dark & { #{$property}: $dark-value !important; }
+
+    body.colorscheme-dark & {
+        #{$property}: $dark-value !important;
+    }
 }
 
 .post {
@@ -15,7 +18,10 @@
         padding: 0 2rem;
     }
 
-    img, svg, .mermaid > svg, .goat > svg {
+    img,
+    svg,
+    .mermaid>svg,
+    .goat>svg {
         /* used in combination with layouts/_default/_markup/render-image.html */
         max-width: 100%;
         height: auto;
@@ -25,15 +31,19 @@
         margin: auto;
     }
 
-    .goat > svg {
+    .goat>svg {
         /* reset the font size on goat diagrams */
         font-size: 1rem;
     }
 
-    .mermaid > svg {
-        .packetByte, .packetLabel, .packetTitle {
+    .mermaid>svg {
+
+        .packetByte,
+        .packetLabel,
+        .packetTitle {
             @include themeProperty(fill, $alt-fg-color, $alt-fg-color-dark);
         }
+
         .packetBlock {
             @include themeProperty(fill, $alt-bg-color, $alt-bg-color-dark);
         }
@@ -67,6 +77,7 @@
     div.wordcloud {
         max-width: 100%;
         height: 30rem;
+
         span {
             font-family: $font-family !important;
         }
@@ -85,7 +96,7 @@
         /* prevent selecting the command line prompt */
         user-select: none;
     }
-    
+
     .lntable pre {
         /* prevent additional margins around line numbers in code blocks */
         padding: 0;
@@ -107,6 +118,20 @@
     .footnotes {
         /* make footnotes smaller */
         font-size: 0.8em;
+    }
+
+    p:has(.call-to-action) {
+        text-align: center;
+    }
+
+    .call-to-action {
+        display: inline-block;
+        text-align: center;
+        margin: 0 auto;
+        padding: 0.5em 1em;
+        color: white;
+        background-color: $link-color;
+        border-radius: 0.6rem;
     }
 }
 
